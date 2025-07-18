@@ -9,7 +9,8 @@ import {
   Info,
   Copy,
   Download,
-  Upload
+  Upload,
+  Trash2
 } from "lucide-react";
 
 const languages = [
@@ -121,6 +122,9 @@ export const CodeEditor = () => {
           </Button>
           <Button variant="ghost" size="sm">
             <Upload className="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setCode("")}>
+            <Trash2 className="w-4 h-4" />
           </Button>
         </div>
       </div>
