@@ -1,0 +1,205 @@
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Bot, 
+  User, 
+  Send, 
+  Lightbulb, 
+  Code, 
+  BookOpen,
+  Zap
+} from "lucide-react";
+
+interface ChatMessage {
+  id: string;
+  type: "user" | "assistant";
+  content: string;
+  timestamp: Date;
+  category?: "suggestion" | "explanation" | "fix" | "guidance";
+}
+
+const initialMessages: ChatMessage[] = [
+  {
+    id: "1",
+    type: "assistant",
+    content: "👋 Welcome to CodeSplinter! I'm your AI coding mentor. I've analyzed your Python code and noticed you're working on a greeting function. Great start! Would you like me to suggest some improvements or explain any concepts?",
+    timestamp: new Date(),
+    category: "guidance"
+  },
+  {
+    id: "2", 
+    type: "assistant",
+    content: "💡 **Quick Tip**: I noticed you could add type hints to your `greet()` function. This would make your code more readable and help catch potential bugs early. Want me to show you how?",
+    timestamp: new Date(),
+    category: "suggestion"
+  }
+];
+
+export const AIChatMentor = () => {
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
+  const [input, setInput] = useState("");
+
+  const handleSendMessage = () => {
+    if (!input.trim()) return;
+
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      type: "user",
+      content: input,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInput("");
+
+    // Simulate AI response
+    setTimeout(() => {
+      const aiResponse: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        type: "assistant",
+        content: `Great question! Let me help you with that. Based on your code, I can see you're trying to ${input.toLowerCase()}. Here's what I suggest...`,
+        timestamp: new Date(),
+        category: "explanation"
+      };
+      setMessages(prev => [...prev, aiResponse]);
+    }, 1000);
+  };
+
+  const getCategoryIcon = (category?: string) => {
+    switch (category) {
+      case "suggestion": return <Lightbulb className="w-4 h-4 text-warning" />;
+      case "fix": return <Zap className="w-4 h-4 text-destructive" />;
+      case "explanation": return <BookOpen className="w-4 h-4 text-primary" />;
+      case "guidance": return <Code className="w-4 h-4 text-success" />;
+      default: return <Bot className="w-4 h-4" />;
+    }
+  };
+
+  const getCategoryLabel = (category?: string) => {
+    switch (category) {
+      case "suggestion": return "Suggestion";
+      case "fix": return "Bug Fix";
+      case "explanation": return "Explanation";
+      case "guidance": return "Guidance";
+      default: return "Response";
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-card">
+      {/* Chat Header */}
+      <div className="p-4 border-b border-border">
+        <div className="flex items-center gap-3">
+          <Avatar className="bg-gradient-primary">
+            <AvatarFallback className="bg-transparent text-primary-foreground">
+              <Bot className="w-5 h-5" />
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <h3 className="font-semibold">AI Coding Mentor</h3>
+            <p className="text-sm text-muted-foreground">Powered by Gemini AI</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Chat Messages */}
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-4">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex gap-3 ${
+                message.type === "user" ? "justify-end" : "justify-start"
+              }`}
+            >
+              {message.type === "assistant" && (
+                <Avatar className="bg-gradient-primary shrink-0 mt-1">
+                  <AvatarFallback className="bg-transparent text-primary-foreground">
+                    <Bot className="w-4 h-4" />
+                  </AvatarFallback>
+                </Avatar>
+              )}
+              
+              <div
+                className={`max-w-[80%] rounded-lg p-3 ${
+                  message.type === "user"
+                    ? "bg-primary text-primary-foreground ml-auto"
+                    : "bg-muted"
+                }`}
+              >
+                {message.type === "assistant" && message.category && (
+                  <div className="flex items-center gap-2 mb-2">
+                    {getCategoryIcon(message.category)}
+                    <Badge variant="secondary" className="text-xs">
+                      {getCategoryLabel(message.category)}
+                    </Badge>
+                  </div>
+                )}
+                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                <span className="text-xs opacity-70 mt-1 block">
+                  {message.timestamp.toLocaleTimeString()}
+                </span>
+              </div>
+
+              {message.type === "user" && (
+                <Avatar className="bg-secondary shrink-0 mt-1">
+                  <AvatarFallback>
+                    <User className="w-4 h-4" />
+                  </AvatarFallback>
+                </Avatar>
+              )}
+            </div>
+          ))}
+        </div>
+      </ScrollArea>
+
+      {/* Chat Input */}
+      <div className="p-4 border-t border-border">
+        <div className="flex gap-2">
+          <Input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask your coding mentor anything..."
+            onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+            className="flex-1"
+          />
+          <Button onClick={handleSendMessage} disabled={!input.trim()}>
+            <Send className="w-4 h-4" />
+          </Button>
+        </div>
+        
+        {/* Quick suggestions */}
+        <div className="flex gap-2 mt-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-xs h-7"
+            onClick={() => setInput("Explain this code")}
+          >
+            Explain code
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-xs h-7"
+            onClick={() => setInput("Find bugs")}
+          >
+            Find bugs
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-xs h-7"
+            onClick={() => setInput("Optimize performance")}
+          >
+            Optimize
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};

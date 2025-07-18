@@ -2,41 +2,78 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* CodeSplinter Design System - Developer-focused colors and gradients */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Main backgrounds - Deep coding theme */
+    --background: 220 27% 8%;
+    --foreground: 210 40% 98%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Card and surface colors */
+    --card: 220 23% 11%;
+    --card-foreground: 210 40% 95%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 220 23% 9%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary - Vibrant coding blue */
+    --primary: 217 91% 60%;
+    --primary-foreground: 220 27% 8%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary - Subtle purple accent */
+    --secondary: 261 83% 58%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted surfaces */
+    --muted: 220 13% 18%;
+    --muted-foreground: 215 16% 65%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent - Neon green for highlights */
+    --accent: 142 76% 36%;
+    --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 84.2% 60.2%;
+    /* Error states */
+    --destructive: 0 86% 67%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Warning - Orange for syntax warnings */
+    --warning: 38 92% 50%;
+    --warning-foreground: 220 27% 8%;
 
-    --radius: 0.5rem;
+    /* Success - Green for valid code */
+    --success: 142 76% 45%;
+    --success-foreground: 210 40% 98%;
+
+    /* Borders and inputs */
+    --border: 220 13% 22%;
+    --input: 220 13% 18%;
+    --ring: 217 91% 60%;
+
+    /* Code syntax colors */
+    --syntax-comment: 215 16% 50%;
+    --syntax-keyword: 261 83% 68%;
+    --syntax-string: 142 76% 55%;
+    --syntax-number: 38 92% 60%;
+    --syntax-function: 217 91% 70%;
+    --syntax-variable: 190 81% 67%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(261 83% 58%) 100%);
+    --gradient-secondary: linear-gradient(135deg, hsl(220 27% 8%) 0%, hsl(220 23% 11%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(142 76% 36%) 0%, hsl(190 81% 67%) 100%);
+    --gradient-error: linear-gradient(135deg, hsl(0 86% 67%) 0%, hsl(38 92% 50%) 100%);
+
+    /* Shadows and glows */
+    --shadow-glow: 0 0 20px hsl(217 91% 60% / 0.3);
+    --shadow-error: 0 0 15px hsl(0 86% 67% / 0.4);
+    --shadow-success: 0 0 15px hsl(142 76% 45% / 0.4);
+
+    /* Animation timings */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+    --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
 
