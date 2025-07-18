@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Bot, 
   User, 
@@ -11,7 +13,8 @@ import {
   Lightbulb, 
   Code, 
   BookOpen,
-  Zap
+  Zap,
+  Loader2
 } from "lucide-react";
 
 interface ChatMessage {
@@ -22,29 +25,28 @@ interface ChatMessage {
   category?: "suggestion" | "explanation" | "fix" | "guidance";
 }
 
+interface AIChatMentorProps {
+  currentCode?: string;
+}
+
 const initialMessages: ChatMessage[] = [
   {
     id: "1",
     type: "assistant",
-    content: "👋 Welcome to CodeSplinter! I'm your AI coding mentor. I've analyzed your Python code and noticed you're working on a greeting function. Great start! Would you like me to suggest some improvements or explain any concepts?",
+    content: "👋 Welcome to CodeSplinter! I'm your AI coding mentor. I can help you understand code, find bugs, suggest improvements, and answer programming questions. Share your code with me and let's start coding together!",
     timestamp: new Date(),
     category: "guidance"
-  },
-  {
-    id: "2", 
-    type: "assistant",
-    content: "💡 **Quick Tip**: I noticed you could add type hints to your `greet()` function. This would make your code more readable and help catch potential bugs early. Want me to show you how?",
-    timestamp: new Date(),
-    category: "suggestion"
   }
 ];
 
-export const AIChatMentor = () => {
+export const AIChatMentor = ({ currentCode = "" }: AIChatMentorProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleSendMessage = () => {
-    if (!input.trim()) return;
+  const handleSendMessage = async () => {
+    if (!input.trim() || isLoading) return;
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -54,19 +56,42 @@ export const AIChatMentor = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = input;
     setInput("");
+    setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-chat', {
+        body: {
+          messages: [...messages, userMessage].map(msg => ({
+            role: msg.type === 'user' ? 'user' : 'assistant',
+            content: msg.content
+          })),
+          code: currentCode
+        }
+      });
+
+      if (error) throw error;
+
       const aiResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: "assistant",
-        content: `Great question! Let me help you with that. Based on your code, I can see you're trying to ${input.toLowerCase()}. Here's what I suggest...`,
+        content: data.response,
         timestamp: new Date(),
         category: "explanation"
       };
+
       setMessages(prev => [...prev, aiResponse]);
-    }, 1000);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to get AI response. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getCategoryIcon = (category?: string) => {
@@ -101,7 +126,7 @@ export const AIChatMentor = () => {
           </Avatar>
           <div>
             <h3 className="font-semibold">AI Coding Mentor</h3>
-            <p className="text-sm text-muted-foreground">Powered by Gemini AI</p>
+            <p className="text-sm text-muted-foreground">Powered by OpenAI GPT-4</p>
           </div>
         </div>
       </div>
@@ -167,8 +192,8 @@ export const AIChatMentor = () => {
             onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
             className="flex-1"
           />
-          <Button onClick={handleSendMessage} disabled={!input.trim()}>
-            <Send className="w-4 h-4" />
+          <Button onClick={handleSendMessage} disabled={!input.trim() || isLoading}>
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </Button>
         </div>
         
@@ -178,7 +203,7 @@ export const AIChatMentor = () => {
             variant="ghost" 
             size="sm" 
             className="text-xs h-7"
-            onClick={() => setInput("Explain this code")}
+            onClick={() => setInput("Explain the current code")}
           >
             Explain code
           </Button>
@@ -186,7 +211,7 @@ export const AIChatMentor = () => {
             variant="ghost" 
             size="sm" 
             className="text-xs h-7"
-            onClick={() => setInput("Find bugs")}
+            onClick={() => setInput("Find bugs in my code")}
           >
             Find bugs
           </Button>
@@ -194,7 +219,7 @@ export const AIChatMentor = () => {
             variant="ghost" 
             size="sm" 
             className="text-xs h-7"
-            onClick={() => setInput("Optimize performance")}
+            onClick={() => setInput("How can I optimize this code?")}
           >
             Optimize
           </Button>

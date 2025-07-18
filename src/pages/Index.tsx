@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Header } from "@/components/Header";
 import { CodeEditor } from "@/components/CodeEditor";
 import { AIChatMentor } from "@/components/AIChatMentor";
@@ -6,6 +7,8 @@ import { ProjectGuidance } from "@/components/ProjectGuidance";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
+  const [currentCode, setCurrentCode] = useState("");
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
@@ -16,7 +19,7 @@ const Index = () => {
           <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-0">
             {/* Code Editor */}
             <div className="border-r border-border">
-              <CodeEditor />
+              <CodeEditor onCodeChange={setCurrentCode} />
             </div>
             
             {/* Output Console */}
@@ -35,7 +38,7 @@ const Index = () => {
             </TabsList>
             
             <TabsContent value="chat" className="flex-1 m-0">
-              <AIChatMentor />
+              <AIChatMentor currentCode={currentCode} />
             </TabsContent>
             
             <TabsContent value="guidance" className="flex-1 m-0 overflow-y-auto">

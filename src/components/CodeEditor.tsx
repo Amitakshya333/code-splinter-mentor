@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   FileText, 
   AlertCircle, 
@@ -10,7 +12,9 @@ import {
   Copy,
   Download,
   Upload,
-  Trash2
+  Trash2,
+  Wand2,
+  Loader2
 } from "lucide-react";
 
 const languages = [
@@ -77,17 +81,72 @@ const calc = new Calculator();
 console.log(calc.add(5, 3));`
 };
 
-export const CodeEditor = () => {
+interface CodeEditorProps {
+  onCodeChange?: (code: string) => void;
+}
+
+export const CodeEditor = ({ onCodeChange }: CodeEditorProps) => {
   const [selectedLanguage, setSelectedLanguage] = useState("python");
   const [code, setCode] = useState(sampleCode.python);
   const [errors] = useState([
     { line: 12, type: "warning", message: "Consider adding type hints for better code clarity" },
     { line: 8, type: "info", message: "This function could benefit from docstring documentation" }
   ]);
+  const [isFixing, setIsFixing] = useState(false);
+  const { toast } = useToast();
 
   const handleLanguageChange = (language: string) => {
     setSelectedLanguage(language);
-    setCode(sampleCode[language as keyof typeof sampleCode] || "// Start coding here...");
+    const newCode = sampleCode[language as keyof typeof sampleCode] || "// Start coding here...";
+    setCode(newCode);
+    onCodeChange?.(newCode);
+  };
+
+  const handleCodeChange = (newCode: string) => {
+    setCode(newCode);
+    onCodeChange?.(newCode);
+  };
+
+  const handleFixCode = async () => {
+    if (!code.trim()) {
+      toast({
+        title: "No code to fix",
+        description: "Please write some code first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsFixing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-fix-code', {
+        body: {
+          code,
+          language: selectedLanguage
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.fixedCode) {
+        setCode(data.fixedCode);
+        onCodeChange?.(data.fixedCode);
+        
+        toast({
+          title: "Code Fixed!",
+          description: `Applied ${data.changes?.length || 0} improvements.`,
+        });
+      }
+    } catch (error) {
+      console.error('Error fixing code:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fix code. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsFixing(false);
+    }
   };
 
   return (
@@ -114,6 +173,16 @@ export const CodeEditor = () => {
         </div>
 
         <div className="flex gap-2">
+          <Button 
+            variant="default" 
+            size="sm" 
+            onClick={handleFixCode}
+            disabled={isFixing}
+            className="gap-2"
+          >
+            {isFixing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+            AI Fix
+          </Button>
           <Button variant="ghost" size="sm">
             <Copy className="w-4 h-4" />
           </Button>
@@ -123,7 +192,7 @@ export const CodeEditor = () => {
           <Button variant="ghost" size="sm">
             <Upload className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => setCode("")}>
+          <Button variant="ghost" size="sm" onClick={() => { setCode(""); onCodeChange?.(""); }}>
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>
@@ -133,7 +202,7 @@ export const CodeEditor = () => {
       <div className="flex-1 relative">
         <textarea
           value={code}
-          onChange={(e) => setCode(e.target.value)}
+          onChange={(e) => handleCodeChange(e.target.value)}
           className="w-full h-full p-4 bg-muted font-mono text-sm resize-none border-none outline-none"
           style={{ 
             lineHeight: "1.6",
