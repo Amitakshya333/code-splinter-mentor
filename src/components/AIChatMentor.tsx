@@ -33,7 +33,7 @@ const initialMessages: ChatMessage[] = [
   {
     id: "1",
     type: "assistant",
-    content: "👋 Welcome to CodeSplinter! I'm your AI coding mentor. I can help you understand code, find bugs, suggest improvements, and answer programming questions. Share your code with me and let's start coding together!",
+    content: "🤖 Welcome to CodeSplinter! I'm your Gemini-powered AI coding mentor with advanced reasoning capabilities. I can think through complex problems, analyze your code in depth, and provide detailed explanations. Share your code with me and let's start coding together!",
     timestamp: new Date(),
     category: "guidance"
   }
@@ -61,7 +61,7 @@ export const AIChatMentor = ({ currentCode = "" }: AIChatMentorProps) => {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('ai-chat', {
+      const { data, error } = await supabase.functions.invoke('gemini-chat', {
         body: {
           messages: [...messages, userMessage].map(msg => ({
             role: msg.type === 'user' ? 'user' : 'assistant',
@@ -119,14 +119,12 @@ export const AIChatMentor = ({ currentCode = "" }: AIChatMentorProps) => {
       {/* Chat Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <Avatar className="bg-gradient-primary">
-            <AvatarFallback className="bg-transparent text-primary-foreground">
-              <Bot className="w-5 h-5" />
-            </AvatarFallback>
+          <Avatar className="bg-gradient-to-r from-blue-500 to-purple-600">
+            <AvatarFallback className="bg-transparent text-white font-bold">G</AvatarFallback>
           </Avatar>
           <div>
-            <h3 className="font-semibold">AI Coding Mentor</h3>
-            <p className="text-sm text-muted-foreground">Powered by OpenAI GPT-4</p>
+            <h3 className="font-semibold">Gemini AI Mentor</h3>
+            <p className="text-sm text-muted-foreground">Advanced reasoning & code analysis</p>
           </div>
         </div>
       </div>
@@ -142,10 +140,8 @@ export const AIChatMentor = ({ currentCode = "" }: AIChatMentorProps) => {
               }`}
             >
               {message.type === "assistant" && (
-                <Avatar className="bg-gradient-primary shrink-0 mt-1">
-                  <AvatarFallback className="bg-transparent text-primary-foreground">
-                    <Bot className="w-4 h-4" />
-                  </AvatarFallback>
+                <Avatar className="bg-gradient-to-r from-blue-500 to-purple-600 shrink-0 mt-1">
+                  <AvatarFallback className="bg-transparent text-white font-bold">G</AvatarFallback>
                 </Avatar>
               )}
               
