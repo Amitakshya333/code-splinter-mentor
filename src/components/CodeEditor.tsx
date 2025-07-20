@@ -194,13 +194,53 @@ export const CodeEditor = ({ onCodeChange }: CodeEditorProps) => {
             {isFixing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
             AI Fix
           </Button>
-          <Button variant="ghost" size="sm">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => {
+              navigator.clipboard.writeText(code);
+              toast({ title: "Code copied to clipboard!" });
+            }}
+          >
             <Copy className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="sm">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => {
+              const blob = new Blob([code], { type: 'text/plain' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `code${getCurrentLanguage()?.ext || '.txt'}`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
             <Download className="w-4 h-4" />
           </Button>
-          <Button variant="ghost" size="sm">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = '.txt,.js,.py,.html,.css,.java,.c,.ts,.jsx';
+              input.onchange = (e) => {
+                const file = (e.target as HTMLInputElement).files?.[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onload = (e) => {
+                    const content = e.target?.result as string;
+                    setCode(content);
+                    onCodeChange?.(content);
+                  };
+                  reader.readAsText(file);
+                }
+              };
+              input.click();
+            }}
+          >
             <Upload className="w-4 h-4" />
           </Button>
           <Button variant="ghost" size="sm" onClick={() => { setCode(""); onCodeChange?.(""); }}>

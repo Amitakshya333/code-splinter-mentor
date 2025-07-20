@@ -42,7 +42,7 @@ Focus on making the code production-ready while maintaining its original functio
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: `Please analyze and fix this code:\n\n\`\`\`${language}\n${code}\n\`\`\`` }

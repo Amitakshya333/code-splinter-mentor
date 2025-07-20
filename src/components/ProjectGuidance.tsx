@@ -167,7 +167,18 @@ export const ProjectGuidance = () => {
                   </div>
 
                   {step.status === "current" && (
-                    <Button size="sm" className="shrink-0">
+                    <Button 
+                      size="sm" 
+                      className="shrink-0"
+                      onClick={() => {
+                        // Mark current step as completed and move to next
+                        const nextIndex = projectSteps.findIndex(s => s.id === step.id) + 1;
+                        if (nextIndex < projectSteps.length) {
+                          step.status = "completed";
+                          projectSteps[nextIndex].status = "current";
+                        }
+                      }}
+                    >
                       Continue
                     </Button>
                   )}

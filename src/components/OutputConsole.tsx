@@ -130,11 +130,11 @@ export const OutputConsole = () => {
 
         <div className="flex gap-2">
           <Button 
-            variant="success" 
+            variant="default" 
             size="sm" 
             onClick={handleRun}
             disabled={isRunning}
-            className="gap-2"
+            className="gap-2 bg-green-600 hover:bg-green-700"
           >
             <Play className="w-4 h-4" />
             Run
