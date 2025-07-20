@@ -30,7 +30,7 @@ const Index = () => {
         </div>
 
         {/* Right Sidebar */}
-        <div className="w-96 bg-card/60 backdrop-blur-xl rounded-2xl border border-border/50 shadow-strong">
+        <div className="w-80 bg-card/60 backdrop-blur-xl rounded-2xl border border-border/50 shadow-strong">
           <Tabs defaultValue="chat" className="h-full flex flex-col">
             <TabsList className="grid w-full grid-cols-2 bg-muted/30 m-1.5 rounded-xl h-11 p-1">
               <TabsTrigger value="chat" className="rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-subtle transition-all duration-200">
