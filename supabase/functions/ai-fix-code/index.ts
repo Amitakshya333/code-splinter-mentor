@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -35,30 +35,31 @@ Return your response in JSON format with:
 Language: ${language}
 Focus on making the code production-ready while maintaining its original functionality.`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Please analyze and fix this code:\n\n\`\`\`${language}\n${code}\n\`\`\`` }
-        ],
-        temperature: 0.3,
-        max_tokens: 2000,
+        contents: [{
+          parts: [{
+            text: `${systemPrompt}\n\nPlease analyze and fix this code:\n\n\`\`\`${language}\n${code}\n\`\`\``
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 2000,
+        }
       }),
     });
 
     const data = await response.json();
     
     if (!response.ok) {
-      throw new Error(data.error?.message || 'OpenAI API error');
+      throw new Error(data.error?.message || 'Gemini API error');
     }
 
-    const aiResponse = data.choices[0].message.content;
+    const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
     
     // Try to parse JSON response, fallback to text if needed
     let result;
