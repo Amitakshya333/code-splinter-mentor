@@ -27,19 +27,20 @@ interface ChatMessage {
 
 interface AIChatMentorProps {
   currentCode?: string;
+  currentProject?: string | null;
 }
 
 const initialMessages: ChatMessage[] = [
   {
     id: "1",
     type: "assistant",
-    content: "🤖 Welcome to CodeSplinter! I'm your Gemini-powered AI coding mentor with advanced reasoning capabilities. I can think through complex problems, analyze your code in depth, and provide detailed explanations. Share your code with me and let's start coding together!",
+    content: "🧠 Welcome to your CodeSplinter AI Mentor! I'm here to guide you like a human mentor would. I don't just write code - I help you understand WHY things work, catch mistakes before you make them, and guide you step-by-step through building real projects. What would you like to learn today?",
     timestamp: new Date(),
     category: "guidance"
   }
 ];
 
-export const AIChatMentor = ({ currentCode = "" }: AIChatMentorProps) => {
+export const AIChatMentor = ({ currentCode = "", currentProject }: AIChatMentorProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -114,18 +115,40 @@ export const AIChatMentor = ({ currentCode = "" }: AIChatMentorProps) => {
     }
   };
 
+  const getMentorSuggestions = () => {
+    if (currentProject) {
+      return [
+        "What's the next step for my project?",
+        "Check my code for bugs",
+        "How can I improve this code?",
+        "Explain what I just wrote"
+      ];
+    }
+    return [
+      "Help me start a new project",
+      "Explain this concept",
+      "Find bugs in my code",
+      "What should I learn next?"
+    ];
+  };
+
   return (
     <div className="flex flex-col h-full bg-card">
       {/* Chat Header */}
-      <div className="p-4 border-b border-border">
+      <div className="p-4 border-b border-border bg-gradient-to-r from-primary/5 to-accent/5">
         <div className="flex items-center gap-3">
-          <Avatar className="bg-gradient-to-r from-blue-500 to-purple-600">
-            <AvatarFallback className="bg-transparent text-white font-bold">G</AvatarFallback>
+          <Avatar className="bg-gradient-to-r from-primary to-primary/60">
+            <AvatarFallback className="bg-transparent text-white font-bold">CS</AvatarFallback>
           </Avatar>
-          <div>
-            <h3 className="font-semibold">Gemini AI Mentor</h3>
-            <p className="text-sm text-muted-foreground">Advanced reasoning & code analysis</p>
+          <div className="flex-1">
+            <h3 className="font-semibold">CodeSplinter AI Mentor</h3>
+            <p className="text-sm text-muted-foreground">Your step-by-step coding guide</p>
           </div>
+          {currentProject && (
+            <Badge variant="outline" className="bg-primary/10 border-primary/20">
+              {currentProject}
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -193,32 +216,38 @@ export const AIChatMentor = ({ currentCode = "" }: AIChatMentorProps) => {
           </Button>
         </div>
         
-        {/* Quick suggestions */}
-        <div className="flex gap-2 mt-2">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-xs h-7"
-            onClick={() => setInput("Explain the current code")}
-          >
-            Explain code
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-xs h-7"
-            onClick={() => setInput("Find bugs in my code")}
-          >
-            Find bugs
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-xs h-7"
-            onClick={() => setInput("How can I optimize this code?")}
-          >
-            Optimize
-          </Button>
+        {/* Mentor Mode Suggestions */}
+        <div className="space-y-2 mt-3">
+          <div className="text-xs text-muted-foreground flex items-center gap-1">
+            <Bot className="w-3 h-3" />
+            Quick mentor questions:
+          </div>
+          <div className="grid grid-cols-2 gap-1">
+            {getMentorSuggestions().map((suggestion, index) => (
+              <Button 
+                key={index}
+                variant="ghost" 
+                size="sm" 
+                className="text-xs h-8 justify-start p-2"
+                onClick={() => setInput(suggestion)}
+              >
+                {suggestion}
+              </Button>
+            ))}
+          </div>
+          
+          {/* What's Next Feature */}
+          {currentProject && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full text-xs h-8 border-primary/20 bg-primary/5 hover:bg-primary/10"
+              onClick={() => setInput("What should I work on next?")}
+            >
+              <Lightbulb className="w-3 h-3 mr-1" />
+              What's next? (Mentor Mode)
+            </Button>
+          )}
         </div>
       </div>
     </div>
