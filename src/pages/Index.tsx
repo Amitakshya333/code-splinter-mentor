@@ -15,16 +15,22 @@ const Index = () => {
       
       <div className="flex-1 flex p-4 gap-4">
         {/* Main Editor Area */}
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Code Editor */}
-            <div className="bg-card/80 backdrop-blur-xl rounded-2xl border border-border/50 shadow-medium overflow-hidden">
-              <CodeEditor onCodeChange={setCurrentCode} />
-            </div>
-            
-            {/* Output Console */}
-            <div className="bg-card/80 backdrop-blur-xl rounded-2xl border border-border/50 shadow-medium overflow-hidden">
-              <OutputConsole />
+        <div className="flex-1 flex flex-col gap-4">
+          {/* Code Editor */}
+          <div className="h-1/2 bg-card/80 backdrop-blur-xl rounded-2xl border border-border/50 shadow-medium overflow-hidden">
+            <CodeEditor onCodeChange={setCurrentCode} />
+          </div>
+          
+          {/* Output Display Area - More Prominent */}
+          <div className="h-1/2 bg-card/90 backdrop-blur-xl rounded-2xl border border-primary/20 shadow-strong overflow-hidden">
+            <div className="h-full flex flex-col">
+              <div className="flex items-center justify-between p-4 border-b border-border/30 bg-gradient-to-r from-primary/10 to-primary/5">
+                <h3 className="text-lg font-semibold text-foreground">Output Display</h3>
+                <div className="text-sm text-muted-foreground">Live Results</div>
+              </div>
+              <div className="flex-1">
+                <OutputConsole />
+              </div>
             </div>
           </div>
         </div>
