@@ -15,7 +15,19 @@ serve(async (req) => {
   }
 
   try {
+    console.log('AI Fix Code function called');
+    
+    // Check if API key is configured
+    if (!geminiApiKey) {
+      console.error('GEMINI_API_KEY not configured');
+      return new Response(JSON.stringify({ error: 'GEMINI_API_KEY not configured' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const { code, language } = await req.json();
+    console.log('Processing code fix request for language:', language);
 
     const systemPrompt = `You are an expert code reviewer and fixer. Analyze the provided code and:
 
