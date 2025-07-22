@@ -10,6 +10,7 @@ import { Brain, Target, Zap } from "lucide-react";
 
 const Index = () => {
   const [currentCode, setCurrentCode] = useState("");
+  const [currentLanguage, setCurrentLanguage] = useState("python");
   const [currentProject, setCurrentProject] = useState<string | null>(null);
 
   return (
@@ -56,7 +57,7 @@ const Index = () => {
                 Step-by-Step Guidance
               </Badge>
             </div>
-            <CodeEditor onCodeChange={setCurrentCode} />
+            <CodeEditor onCodeChange={setCurrentCode} onLanguageChange={setCurrentLanguage} />
           </div>
           
           {/* Live Output & Feedback */}
@@ -70,7 +71,7 @@ const Index = () => {
                 </div>
               </div>
               <div className="flex-1">
-                <OutputConsole />
+                <OutputConsole code={currentCode} language={currentLanguage} />
               </div>
             </div>
           </div>

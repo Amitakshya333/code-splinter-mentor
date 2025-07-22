@@ -88,9 +88,10 @@ console.log(calc.add(5, 3));`
 
 interface CodeEditorProps {
   onCodeChange?: (code: string) => void;
+  onLanguageChange?: (language: string) => void;
 }
 
-export const CodeEditor = ({ onCodeChange }: CodeEditorProps) => {
+export const CodeEditor = ({ onCodeChange, onLanguageChange }: CodeEditorProps) => {
   const [selectedLanguage, setSelectedLanguage] = useState("python");
   const [code, setCode] = useState(sampleCode.python);
   const [showEditor, setShowEditor] = useState(true);
@@ -107,6 +108,7 @@ export const CodeEditor = ({ onCodeChange }: CodeEditorProps) => {
     const newCode = sampleCode[language as keyof typeof sampleCode] || "// Start coding here...";
     setCode(newCode);
     onCodeChange?.(newCode);
+    onLanguageChange?.(language);
   };
 
   const getCurrentLanguage = () => {
