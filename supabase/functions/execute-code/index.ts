@@ -79,7 +79,15 @@ async function simulatePythonExecution(code: string): Promise<string> {
     const matches = code.match(/print\s*\((.*?)\)/g);
     if (matches) {
       return matches.map(match => {
-        const content = match.replace(/print\s*\((.*?)\)/, '$1').replace(/['"]/g, '');
+        let content = match.replace(/print\s*\((.*?)\)/, '$1').replace(/^["']|["']$/g, '');
+        
+        // Handle f-strings - simple simulation
+        if (content.startsWith('f"') || content.startsWith("f'")) {
+          content = content.substring(2, content.length - 1);
+          // Simple variable substitution for demo
+          content = content.replace(/\{i \+ 1\}/g, '1').replace(/\{.*?\}/g, 'value');
+        }
+        
         return content;
       }).join('\n');
     }
@@ -128,11 +136,21 @@ async function simulateJavaExecution(code: string): Promise<string> {
 
 async function simulateCExecution(code: string): Promise<string> {
   if (code.includes('printf(')) {
-    const matches = code.match(/printf\((.*?)\)/g);
+    const matches = code.match(/printf\s*\((.*?)\)/g);
     if (matches) {
       return matches.map(match => {
-        const content = match.replace(/printf\((.*?)\)/, '$1').replace(/['"]/g, '').replace(/\\n/g, '\n');
-        return content;
+        let content = match.replace(/printf\s*\((.*?)\)/, '$1');
+        
+        // Extract format string and handle basic substitutions
+        const parts = content.split(',');
+        if (parts.length > 1) {
+          let formatStr = parts[0].replace(/^["']|["']$/g, '').replace(/\\n/g, '\n');
+          // Simple %d, %s substitution for demo
+          formatStr = formatStr.replace(/%d/g, '1').replace(/%s/g, 'value');
+          return formatStr;
+        } else {
+          return content.replace(/^["']|["']$/g, '').replace(/\\n/g, '\n');
+        }
       }).join('\n');
     }
   }
