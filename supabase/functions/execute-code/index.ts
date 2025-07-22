@@ -75,11 +75,11 @@ async function simulatePythonExecution(code: string): Promise<string> {
   // Simulate Python execution with basic pattern matching
   // This is a simplified simulation - in production, use a proper Python runtime
   
-  if (code.includes('print(')) {
-    const matches = code.match(/print\((.*?)\)/g);
+  if (code.includes('print')) {
+    const matches = code.match(/print\s*\((.*?)\)/g);
     if (matches) {
       return matches.map(match => {
-        const content = match.replace(/print\((.*?)\)/, '$1').replace(/['"]/g, '');
+        const content = match.replace(/print\s*\((.*?)\)/, '$1').replace(/['"]/g, '');
         return content;
       }).join('\n');
     }
