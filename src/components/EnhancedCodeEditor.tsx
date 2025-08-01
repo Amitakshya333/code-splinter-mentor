@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Editor from "@monaco-editor/react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,9 +16,16 @@ import {
   Trash2, 
   Wand2,
   Settings,
-  Code2
+  Code2,
+  Maximize2,
+  Minimize2,
+  Keyboard,
+  Paintbrush,
+  AlertTriangle,
+  CheckCircle
 } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
+import * as monaco from "monaco-editor";
 
 interface Language {
   id: string;
@@ -259,6 +266,9 @@ export function EnhancedCodeEditor({ onCodeChange, onLanguageChange, onRun }: En
   const [isFixing, setIsFixing] = useState(false);
   const [savedSnippets, setSavedSnippets] = useState<CodeSnippet[]>([]);
   const [showSnippets, setShowSnippets] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [lintErrors, setLintErrors] = useState<any[]>([]);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const { toast } = useToast();
   const { theme } = useTheme();
   const editorRef = useRef<any>(null);
@@ -464,6 +474,146 @@ export function EnhancedCodeEditor({ onCodeChange, onLanguageChange, onRun }: En
     }
   };
 
+  // Phase 1 Improvements - Format Code
+  const handleFormatCode = useCallback(async () => {
+    if (!editorRef.current) return;
+
+    try {
+      await editorRef.current.getAction('editor.action.formatDocument').run();
+      toast({
+        title: "Code Formatted! ✨",
+        description: "Your code has been automatically formatted",
+      });
+    } catch (error) {
+      // Fallback formatting for unsupported languages
+      const formatted = formatCodeManually(code, selectedLanguage);
+      setCode(formatted);
+      onCodeChange?.(formatted);
+      
+      toast({
+        title: "Code Formatted! ✨",
+        description: "Basic formatting applied",
+      });
+    }
+  }, [code, selectedLanguage, onCodeChange]);
+
+  // Manual formatting fallback
+  const formatCodeManually = (code: string, language: string) => {
+    switch (language) {
+      case 'python':
+        return code.replace(/;$/gm, '').replace(/\t/g, '    ');
+      case 'javascript':
+      case 'java':
+      case 'c':
+        return code.replace(/;(\s*\n)/g, ';\n').replace(/\{\s*\n\s*\n/g, '{\n');
+      default:
+        return code;
+    }
+  };
+
+  // Phase 1 Improvements - Full Screen Mode
+  const toggleFullScreen = useCallback(() => {
+    setIsFullScreen(!isFullScreen);
+    toast({
+      title: isFullScreen ? "Exited Full Screen" : "Entered Full Screen",
+      description: isFullScreen ? "Press F11 to enter full screen" : "Press Esc to exit",
+    });
+  }, [isFullScreen]);
+
+  // Phase 1 Improvements - Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Ctrl+S - Save/Format
+      if (event.ctrlKey && event.key === 's') {
+        event.preventDefault();
+        handleFormatCode();
+      }
+      
+      // Ctrl+Enter - Run Code
+      if (event.ctrlKey && event.key === 'Enter') {
+        event.preventDefault();
+        handleRun();
+      }
+      
+      // F11 - Full Screen
+      if (event.key === 'F11') {
+        event.preventDefault();
+        toggleFullScreen();
+      }
+      
+      // Esc - Exit Full Screen
+      if (event.key === 'Escape' && isFullScreen) {
+        event.preventDefault();
+        setIsFullScreen(false);
+      }
+      
+      // Ctrl+/ - Show shortcuts
+      if (event.ctrlKey && event.key === '/') {
+        event.preventDefault();
+        setShowShortcuts(!showShortcuts);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleFormatCode, handleRun, toggleFullScreen, isFullScreen, showShortcuts]);
+
+  // Phase 1 Improvements - Real-time Linting
+  useEffect(() => {
+    const lintCode = async () => {
+      if (!code.trim()) {
+        setLintErrors([]);
+        return;
+      }
+
+      const errors = [];
+      
+      switch (selectedLanguage) {
+        case 'javascript':
+          try {
+            // Basic JS syntax checking
+            new Function(code);
+          } catch (error: any) {
+            errors.push({
+              line: 1,
+              message: error.message,
+              severity: 'error'
+            });
+          }
+          break;
+          
+        case 'python':
+          // Basic Python syntax checking
+          if (code.includes('print(') && !code.includes('print("') && !code.includes("print('")) {
+            errors.push({
+              line: 1,
+              message: 'Consider using string literals in print statements',
+              severity: 'warning'
+            });
+          }
+          break;
+          
+        case 'html':
+          // Basic HTML validation
+          const openTags = (code.match(/<[^\/][^>]*>/g) || []).length;
+          const closeTags = (code.match(/<\/[^>]*>/g) || []).length;
+          if (openTags !== closeTags) {
+            errors.push({
+              line: 1,
+              message: 'Mismatched HTML tags detected',
+              severity: 'warning'
+            });
+          }
+          break;
+      }
+      
+      setLintErrors(errors);
+    };
+
+    const timeoutId = setTimeout(lintCode, 500); // Debounce linting
+    return () => clearTimeout(timeoutId);
+  }, [code, selectedLanguage]);
+
   return (
     <div className="space-y-4">
       {/* Header Controls */}
@@ -509,6 +659,36 @@ export function EnhancedCodeEditor({ onCodeChange, onLanguageChange, onRun }: En
 
           <div className="h-4 w-px bg-border" />
 
+          {/* Phase 1 - New Feature Buttons */}
+          <Button 
+            onClick={handleFormatCode} 
+            size="sm" 
+            variant="outline"
+            title="Format Code (Ctrl+S)"
+          >
+            <Paintbrush className="h-4 w-4" />
+          </Button>
+
+          <Button 
+            onClick={toggleFullScreen} 
+            size="sm" 
+            variant="outline"
+            title="Toggle Full Screen (F11)"
+          >
+            {isFullScreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </Button>
+
+          <Button 
+            onClick={() => setShowShortcuts(!showShortcuts)} 
+            size="sm" 
+            variant="outline"
+            title="Keyboard Shortcuts (Ctrl+/)"
+          >
+            <Keyboard className="h-4 w-4" />
+          </Button>
+
+          <div className="h-4 w-px bg-border" />
+
           <Button onClick={handleSaveSnippet} size="sm" variant="outline">
             <Save className="h-4 w-4" />
           </Button>
@@ -536,6 +716,16 @@ export function EnhancedCodeEditor({ onCodeChange, onLanguageChange, onRun }: En
           <Button onClick={handleClear} size="sm" variant="outline">
             <Trash2 className="h-4 w-4" />
           </Button>
+
+          {/* Linting Status */}
+          {lintErrors.length > 0 && (
+            <div className="flex items-center gap-1 ml-2">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              <Badge variant="destructive" className="text-xs">
+                {lintErrors.length} issue{lintErrors.length !== 1 ? 's' : ''}
+              </Badge>
+            </div>
+          )}
         </div>
       </div>
 
@@ -583,10 +773,76 @@ export function EnhancedCodeEditor({ onCodeChange, onLanguageChange, onRun }: En
         </Card>
       )}
 
+      {/* Keyboard Shortcuts Panel */}
+      {showShortcuts && (
+        <Card className="p-4">
+          <h3 className="font-semibold mb-3 flex items-center gap-2">
+            <Keyboard className="h-4 w-4" />
+            Keyboard Shortcuts
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+            <div className="flex justify-between items-center">
+              <span>Run Code</span>
+              <Badge variant="outline" className="text-xs">Ctrl + Enter</Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>Format Code</span>
+              <Badge variant="outline" className="text-xs">Ctrl + S</Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>Full Screen</span>
+              <Badge variant="outline" className="text-xs">F11</Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>Show Shortcuts</span>
+              <Badge variant="outline" className="text-xs">Ctrl + /</Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>Exit Full Screen</span>
+              <Badge variant="outline" className="text-xs">Esc</Badge>
+            </div>
+            <div className="flex justify-between items-center">
+              <span>Save File</span>
+              <Badge variant="outline" className="text-xs">Ctrl + S</Badge>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Linting Errors Panel */}
+      {lintErrors.length > 0 && (
+        <Card className="p-4 border-warning">
+          <h3 className="font-semibold mb-3 flex items-center gap-2 text-warning">
+            <AlertTriangle className="h-4 w-4" />
+            Code Issues ({lintErrors.length})
+          </h3>
+          <div className="space-y-2">
+            {lintErrors.map((error, index) => (
+              <div key={index} className="flex items-start gap-2 p-2 bg-muted rounded">
+                <div className="flex-shrink-0 mt-1">
+                  {error.severity === 'error' ? (
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4 text-warning" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Line {error.line}</p>
+                  <p className="text-sm text-muted-foreground">{error.message}</p>
+                </div>
+                <Badge variant={error.severity === 'error' ? 'destructive' : 'secondary'} className="text-xs">
+                  {error.severity}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {/* Monaco Editor */}
-      <Card className="overflow-hidden">
+      <Card className={`overflow-hidden ${isFullScreen ? 'fixed inset-0 z-50 rounded-none' : ''}`}>
         <Editor
-          height="500px"
+          height={isFullScreen ? "100vh" : "500px"}
           language={languages.find(l => l.id === selectedLanguage)?.syntax || selectedLanguage}
           value={code}
           theme={theme === "dark" ? "vs-dark" : "vs"}
@@ -595,7 +851,7 @@ export function EnhancedCodeEditor({ onCodeChange, onLanguageChange, onRun }: En
             editorRef.current = editor;
           }}
           options={{
-            minimap: { enabled: false },
+            minimap: { enabled: isFullScreen },
             fontSize: 14,
             lineNumbers: "on",
             rulers: [80],
