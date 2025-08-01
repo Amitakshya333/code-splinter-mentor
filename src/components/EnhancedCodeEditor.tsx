@@ -22,7 +22,15 @@ import {
   Keyboard,
   Paintbrush,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Share2,
+  SplitSquareHorizontal,
+  FileCode,
+  Palette,
+  Search,
+  Replace,
+  Layers,
+  Plus
 } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import * as monaco from "monaco-editor";
@@ -254,6 +262,15 @@ interface CodeSnippet {
   createdAt: Date;
 }
 
+interface CodeTemplate {
+  id: string;
+  name: string;
+  description: string;
+  language: string;
+  code: string;
+  category: string;
+}
+
 interface EnhancedCodeEditorProps {
   onCodeChange?: (code: string) => void;
   onLanguageChange?: (language: string) => void;
@@ -269,6 +286,15 @@ export function EnhancedCodeEditor({ onCodeChange, onLanguageChange, onRun }: En
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [lintErrors, setLintErrors] = useState<any[]>([]);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  
+  // Phase 2 state
+  const [isSplitView, setIsSplitView] = useState(false);
+  const [splitCode, setSplitCode] = useState<string>("");
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [findText, setFindText] = useState("");
+  const [replaceText, setReplaceText] = useState("");
+  const [showFindReplace, setShowFindReplace] = useState(false);
   const { toast } = useToast();
   const { theme } = useTheme();
   const editorRef = useRef<any>(null);
@@ -614,6 +640,291 @@ export function EnhancedCodeEditor({ onCodeChange, onLanguageChange, onRun }: En
     return () => clearTimeout(timeoutId);
   }, [code, selectedLanguage]);
 
+  // Phase 2 Improvements - Code Templates
+  const codeTemplates: CodeTemplate[] = [
+    {
+      id: "algo-quicksort",
+      name: "Quick Sort Algorithm",
+      description: "Efficient sorting algorithm implementation",
+      language: "python",
+      category: "Algorithms",
+      code: `def quicksort(arr):
+    if len(arr) <= 1:
+        return arr
+    
+    pivot = arr[len(arr) // 2]
+    left = [x for x in arr if x < pivot]
+    middle = [x for x in arr if x == pivot]
+    right = [x for x in arr if x > pivot]
+    
+    return quicksort(left) + middle + quicksort(right)
+
+# Example usage
+numbers = [64, 34, 25, 12, 22, 11, 90]
+sorted_numbers = quicksort(numbers)
+print(f"Sorted array: {sorted_numbers}")
+`
+    },
+    {
+      id: "web-api-fetch",
+      name: "Modern API Fetch",
+      description: "Async/await API call with error handling",
+      language: "javascript",
+      category: "Web Development",
+      code: `async function fetchUserData(userId) {
+    const API_BASE = 'https://jsonplaceholder.typicode.com';
+    
+    try {
+        const response = await fetch(\`\${API_BASE}/users/\${userId}\`);
+        
+        if (!response.ok) {
+            throw new Error(\`HTTP error! status: \${response.status}\`);
+        }
+        
+        const userData = await response.json();
+        console.log('User data:', userData);
+        return userData;
+        
+    } catch (error) {
+        console.error('Failed to fetch user data:', error);
+        throw error;
+    }
+}
+
+// Usage example
+fetchUserData(1)
+    .then(user => console.log(\`Welcome \${user.name}!\`))
+    .catch(error => console.error('Error:', error));
+`
+    },
+    {
+      id: "react-component",
+      name: "React Component Template",
+      description: "Modern React functional component with hooks",
+      language: "javascript",
+      category: "React",
+      code: `import React, { useState, useEffect } from 'react';
+
+const UserProfile = ({ userId }) => {
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                setLoading(true);
+                const response = await fetch(\`/api/users/\${userId}\`);
+                if (!response.ok) throw new Error('Failed to fetch user');
+                const userData = await response.json();
+                setUser(userData);
+            } catch (err) {
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (userId) {
+            fetchUser();
+        }
+    }, [userId]);
+
+    if (loading) return <div className="loading">Loading...</div>;
+    if (error) return <div className="error">Error: {error}</div>;
+    if (!user) return <div>No user found</div>;
+
+    return (
+        <div className="user-profile">
+            <h2>{user.name}</h2>
+            <p>{user.email}</p>
+            <p>{user.bio}</p>
+        </div>
+    );
+};
+
+export default UserProfile;
+`
+    },
+    {
+      id: "css-flexbox",
+      name: "Flexbox Layout System",
+      description: "Modern CSS flexbox layout patterns",
+      language: "css",
+      category: "CSS",
+      code: `/* Modern Flexbox Layout System */
+
+.flex-container {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 8px;
+}
+
+/* Center content vertically and horizontally */
+.flex-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* Responsive flex layout */
+.flex-responsive {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.flex-item {
+    flex: 1 1 300px; /* grow, shrink, basis */
+    padding: 1rem;
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Header with logo and navigation */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.nav {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+}
+
+/* Card layout */
+.card-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    padding: 2rem;
+}
+
+.card {
+    flex: 1 1 calc(33.333% - 1rem);
+    min-width: 280px;
+    padding: 1.5rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+}
+`
+    }
+  ];
+
+  // Phase 2 - Code Sharing
+  const handleShareCode = async () => {
+    try {
+      const shareData = {
+        title: `Code Snippet - ${selectedLanguage}`,
+        text: `Check out this ${selectedLanguage} code:`,
+        url: window.location.href
+      };
+
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback - copy share link to clipboard
+        const shareUrl = `${window.location.origin}?code=${encodeURIComponent(code)}&lang=${selectedLanguage}`;
+        await navigator.clipboard.writeText(shareUrl);
+        toast({
+          title: "Share Link Copied! 🔗",
+          description: "Share link has been copied to clipboard",
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing code:', error);
+    }
+  };
+
+  // Phase 2 - Split View Toggle
+  const toggleSplitView = () => {
+    setIsSplitView(!isSplitView);
+    if (!isSplitView && !splitCode) {
+      setSplitCode(code); // Initialize split editor with current code
+    }
+    toast({
+      title: isSplitView ? "Split View Disabled" : "Split View Enabled",
+      description: isSplitView ? "Switched to single editor" : "Compare or edit multiple files",
+    });
+  };
+
+  // Phase 2 - Load Template
+  const handleLoadTemplate = (template: CodeTemplate) => {
+    setCode(template.code);
+    setSelectedLanguage(template.language);
+    onCodeChange?.(template.code);
+    onLanguageChange?.(template.language);
+    setShowTemplates(false);
+    
+    toast({
+      title: "Template Loaded! 📄",
+      description: `Loaded "${template.name}" template`,
+    });
+  };
+
+  // Phase 2 - Find and Replace
+  const handleFindReplace = () => {
+    if (!findText) return;
+    
+    const newCode = code.replace(new RegExp(findText, 'g'), replaceText);
+    setCode(newCode);
+    onCodeChange?.(newCode);
+    
+    const matches = (code.match(new RegExp(findText, 'g')) || []).length;
+    toast({
+      title: "Find & Replace Complete",
+      description: `Replaced ${matches} occurrence${matches !== 1 ? 's' : ''}`,
+    });
+  };
+
+  // Phase 2 - Enhanced Monaco Editor Setup
+  const setupMonacoEditor = (editor: any) => {
+    editorRef.current = editor;
+    
+    // Add custom autocomplete
+    monaco.languages.registerCompletionItemProvider(selectedLanguage, {
+      provideCompletionItems: (model, position) => {
+        const suggestions = [];
+        
+        if (selectedLanguage === 'javascript') {
+          suggestions.push(
+            {
+              label: 'console.log',
+              kind: monaco.languages.CompletionItemKind.Function,
+              insertText: 'console.log(${1:message});',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'Log a message to the console'
+            },
+            {
+              label: 'async function',
+              kind: monaco.languages.CompletionItemKind.Snippet,
+              insertText: 'async function ${1:functionName}(${2:params}) {\n\t${3:// code}\n}',
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              documentation: 'Create an async function'
+            }
+          );
+        }
+        
+        return { suggestions };
+      }
+    });
+  };
+
   return (
     <div className="space-y-4">
       {/* Header Controls */}
@@ -685,6 +996,45 @@ export function EnhancedCodeEditor({ onCodeChange, onLanguageChange, onRun }: En
             title="Keyboard Shortcuts (Ctrl+/)"
           >
             <Keyboard className="h-4 w-4" />
+          </Button>
+
+          <div className="h-4 w-px bg-border" />
+
+          {/* Phase 2 - Advanced Feature Buttons */}
+          <Button 
+            onClick={handleShareCode} 
+            size="sm" 
+            variant="outline"
+            title="Share Code"
+          >
+            <Share2 className="h-4 w-4" />
+          </Button>
+
+          <Button 
+            onClick={toggleSplitView} 
+            size="sm" 
+            variant="outline"
+            title="Split View"
+          >
+            <SplitSquareHorizontal className="h-4 w-4" />
+          </Button>
+
+          <Button 
+            onClick={() => setShowTemplates(!showTemplates)} 
+            size="sm" 
+            variant="outline"
+            title="Code Templates"
+          >
+            <FileCode className="h-4 w-4" />
+          </Button>
+
+          <Button 
+            onClick={() => setShowFindReplace(!showFindReplace)} 
+            size="sm" 
+            variant="outline"
+            title="Find & Replace"
+          >
+            <Search className="h-4 w-4" />
           </Button>
 
           <div className="h-4 w-px bg-border" />
@@ -839,34 +1189,165 @@ export function EnhancedCodeEditor({ onCodeChange, onLanguageChange, onRun }: En
         </Card>
       )}
 
-      {/* Monaco Editor */}
-      <Card className={`overflow-hidden ${isFullScreen ? 'fixed inset-0 z-50 rounded-none' : ''}`}>
-        <Editor
-          height={isFullScreen ? "100vh" : "500px"}
-          language={languages.find(l => l.id === selectedLanguage)?.syntax || selectedLanguage}
-          value={code}
-          theme={theme === "dark" ? "vs-dark" : "vs"}
-          onChange={handleCodeChange}
-          onMount={(editor) => {
-            editorRef.current = editor;
-          }}
-          options={{
-            minimap: { enabled: isFullScreen },
-            fontSize: 14,
-            lineNumbers: "on",
-            rulers: [80],
-            wordWrap: "on",
-            automaticLayout: true,
-            tabSize: 2,
-            insertSpaces: true,
-            renderWhitespace: "selection",
-            scrollBeyondLastLine: false,
-            smoothScrolling: true,
-            cursorBlinking: "smooth",
-            cursorSmoothCaretAnimation: "on",
-          }}
-        />
-      </Card>
+      {/* Phase 2 - Code Templates Panel */}
+      {showTemplates && (
+        <Card className="p-4">
+          <h3 className="font-semibold mb-3 flex items-center gap-2">
+            <FileCode className="h-4 w-4" />
+            Code Templates
+          </h3>
+          <div className="grid gap-3 max-h-60 overflow-y-auto">
+            {codeTemplates.map((template) => (
+              <div key={template.id} className="flex items-start justify-between p-3 bg-muted rounded border">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-medium text-sm">{template.name}</span>
+                    <Badge variant="secondary" className="text-xs">
+                      {template.language}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {template.category}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{template.description}</p>
+                </div>
+                <Button 
+                  onClick={() => handleLoadTemplate(template)}
+                  size="sm"
+                  variant="ghost"
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Use
+                </Button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* Phase 2 - Find & Replace Panel */}
+      {showFindReplace && (
+        <Card className="p-4">
+          <h3 className="font-semibold mb-3 flex items-center gap-2">
+            <Search className="h-4 w-4" />
+            Find & Replace
+          </h3>
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-1 block">Find</label>
+              <input
+                type="text"
+                value={findText}
+                onChange={(e) => setFindText(e.target.value)}
+                className="w-full p-2 border rounded text-sm"
+                placeholder="Enter text to find..."
+              />
+            </div>
+            <div className="flex-1">
+              <label className="text-sm font-medium mb-1 block">Replace</label>
+              <input
+                type="text"
+                value={replaceText}
+                onChange={(e) => setReplaceText(e.target.value)}
+                className="w-full p-2 border rounded text-sm"
+                placeholder="Enter replacement text..."
+              />
+            </div>
+            <Button 
+              onClick={handleFindReplace}
+              disabled={!findText}
+              size="sm"
+            >
+              <Replace className="h-4 w-4 mr-1" />
+              Replace All
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {/* Monaco Editor - Enhanced with Split View */}
+      <div className={`${isFullScreen ? 'fixed inset-0 z-50' : ''}`}>
+        {isSplitView ? (
+          <div className="grid grid-cols-2 gap-4">
+            <Card className="overflow-hidden">
+              <div className="p-2 bg-muted text-sm font-medium">Main Editor</div>
+              <Editor
+                height={isFullScreen ? "calc(100vh - 40px)" : "400px"}
+                language={languages.find(l => l.id === selectedLanguage)?.syntax || selectedLanguage}
+                value={code}
+                theme={theme === "dark" ? "vs-dark" : "vs"}
+                onChange={handleCodeChange}
+                onMount={setupMonacoEditor}
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 14,
+                  lineNumbers: "on",
+                  wordWrap: "on",
+                  automaticLayout: true,
+                  tabSize: 2,
+                  insertSpaces: true,
+                  scrollBeyondLastLine: false,
+                  quickSuggestions: true,
+                  suggestOnTriggerCharacters: true,
+                  acceptSuggestionOnEnter: "on",
+                }}
+              />
+            </Card>
+            <Card className="overflow-hidden">
+              <div className="p-2 bg-muted text-sm font-medium">Comparison/Notes</div>
+              <Editor
+                height={isFullScreen ? "calc(100vh - 40px)" : "400px"}
+                language={languages.find(l => l.id === selectedLanguage)?.syntax || selectedLanguage}
+                value={splitCode}
+                theme={theme === "dark" ? "vs-dark" : "vs"}
+                onChange={(value) => setSplitCode(value || "")}
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 14,
+                  lineNumbers: "on",
+                  wordWrap: "on",
+                  automaticLayout: true,
+                  tabSize: 2,
+                  insertSpaces: true,
+                  scrollBeyondLastLine: false,
+                }}
+              />
+            </Card>
+          </div>
+        ) : (
+          <Card className={`overflow-hidden ${isFullScreen ? 'rounded-none' : ''}`}>
+            <Editor
+              height={isFullScreen ? "100vh" : "500px"}
+              language={languages.find(l => l.id === selectedLanguage)?.syntax || selectedLanguage}
+              value={code}
+              theme={theme === "dark" ? "vs-dark" : "vs"}
+              onChange={handleCodeChange}
+              onMount={setupMonacoEditor}
+              options={{
+                minimap: { enabled: isFullScreen },
+                fontSize: 14,
+                lineNumbers: "on",
+                rulers: [80],
+                wordWrap: "on",
+                automaticLayout: true,
+                tabSize: 2,
+                insertSpaces: true,
+                renderWhitespace: "selection",
+                scrollBeyondLastLine: false,
+                smoothScrolling: true,
+                cursorBlinking: "smooth",
+                cursorSmoothCaretAnimation: "on",
+                quickSuggestions: true,
+                suggestOnTriggerCharacters: true,
+                acceptSuggestionOnEnter: "on",
+                folding: true,
+                foldingHighlight: true,
+                showFoldingControls: "always",
+              }}
+            />
+          </Card>
+        )}
+      </div>
 
       <input
         ref={fileInputRef}
