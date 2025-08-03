@@ -83,13 +83,13 @@ export const CollaborationPanel = ({ roomId, userId, onShareRoom }: Collaboratio
           </div>
           
           {newRoomId && (
-            <div className="flex items-center gap-2">
-              <Input
-                value={newRoomId}
-                onChange={(e) => setNewRoomId(e.target.value)}
-                placeholder="Enter room ID"
-                className="text-xs"
-              />
+          <div className="flex items-center gap-2 z-10">
+            <Input
+              value={newRoomId}
+              onChange={(e) => setNewRoomId(e.target.value)}
+              placeholder="Enter room ID"
+              className="text-xs bg-background"
+            />
               <Button size="sm" onClick={() => window.location.href = `?room=${newRoomId}`}>
                 Join
               </Button>

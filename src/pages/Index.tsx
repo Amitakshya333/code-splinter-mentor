@@ -72,9 +72,9 @@ const Index = () => {
   // Show loading screen while initializing
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="w-96 p-6">
-          <CardContent className="space-y-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 space-y-4">
             <div className="text-center">
               <h2 className="text-lg font-semibold mb-2">Loading Code Editor</h2>
               <p className="text-sm text-muted-foreground mb-4">
@@ -92,15 +92,15 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen w-full bg-background">
       <Header currentProject={currentProject} />
       
-      <div className="h-[calc(100vh-4rem)]">
-        <ResizablePanelGroup direction="horizontal" className="h-full">
+      <div className="h-[calc(100vh-4rem)] w-full">
+        <ResizablePanelGroup direction="horizontal" className="h-full w-full">
           {/* Main Content Area */}
           <ResizablePanel defaultSize={75} minSize={50}>
-            <div className="h-full p-6">
-              <ResizablePanelGroup direction="vertical" className="h-full">
+            <div className="h-full w-full p-6">
+              <ResizablePanelGroup direction="vertical" className="h-full w-full">
                 {/* Code Editor */}
                 <ResizablePanel defaultSize={65} minSize={40}>
                   <div className="h-full pr-3">
@@ -131,8 +131,8 @@ const Index = () => {
 
           {/* Right Sidebar */}
           <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
-            <div className="h-full border-l bg-card p-6">
-              <Tabs defaultValue="guidance" className="h-full">
+            <div className="h-full w-full border-l bg-card p-6">
+              <Tabs defaultValue="guidance" className="h-full w-full">
                 <TabsList className="grid w-full grid-cols-5 text-xs">
                   <TabsTrigger value="guidance">Guide</TabsTrigger>
                   <TabsTrigger value="mentor">AI</TabsTrigger>
