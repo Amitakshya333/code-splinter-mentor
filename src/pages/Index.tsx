@@ -7,6 +7,7 @@ import { AIChatMentor } from "@/components/AIChatMentor";
 import { CollaborationPanel } from "@/components/CollaborationPanel";
 import { PerformancePanel } from "@/components/PerformancePanel";
 import { GitPanel } from "@/components/GitPanel";
+import { EducationalHub } from "@/components/EducationalHub";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { useProgressiveLoading } from "@/hooks/useProgressiveLoading";
@@ -133,12 +134,13 @@ const Index = () => {
           <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
             <div className="h-full w-full border-l bg-card p-6">
               <Tabs defaultValue="guidance" className="h-full w-full">
-                <TabsList className="grid w-full grid-cols-5 text-xs">
+                <TabsList className="grid w-full grid-cols-6 text-xs">
                   <TabsTrigger value="guidance">Guide</TabsTrigger>
                   <TabsTrigger value="mentor">AI</TabsTrigger>
                   <TabsTrigger value="collab">Collab</TabsTrigger>
                   <TabsTrigger value="perf">Perf</TabsTrigger>
                   <TabsTrigger value="git">Git</TabsTrigger>
+                  <TabsTrigger value="learn">Learn</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="guidance" className="h-full mt-6">
@@ -168,6 +170,10 @@ const Index = () => {
                 
                 <TabsContent value="git" className="h-full mt-6">
                   <GitPanel />
+                </TabsContent>
+                
+                <TabsContent value="learn" className="h-full mt-6">
+                  <EducationalHub onCodeUpdate={handleRunCode} />
                 </TabsContent>
               </Tabs>
             </div>
