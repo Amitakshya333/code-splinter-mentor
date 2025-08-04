@@ -8,6 +8,7 @@ import { CollaborationPanel } from "@/components/CollaborationPanel";
 import { PerformancePanel } from "@/components/PerformancePanel";
 import { GitPanel } from "@/components/GitPanel";
 import { EducationalHub } from "@/components/EducationalHub";
+import { FeedbackSection } from "@/components/FeedbackSection";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { useProgressiveLoading } from "@/hooks/useProgressiveLoading";
@@ -103,7 +104,7 @@ const Index = () => {
             <div className="h-full w-full p-6">
               <ResizablePanelGroup direction="vertical" className="h-full w-full">
                 {/* Code Editor */}
-                <ResizablePanel defaultSize={65} minSize={40}>
+                <ResizablePanel defaultSize={65} minSize={45} maxSize={80}>
                   <div className="h-full pr-3">
                     <EnhancedCodeEditor 
                       onCodeChange={setCurrentCode} 
@@ -116,12 +117,14 @@ const Index = () => {
                 <ResizableHandle withHandle />
                 
                 {/* Output Console */}
-                <ResizablePanel defaultSize={35} minSize={20}>
+                <ResizablePanel defaultSize={35} minSize={20} maxSize={55}>
                   <div className="h-full pt-3 pr-3">
-                    <EnhancedOutputConsole 
-                      currentCode={currentCode} 
-                      currentLanguage={currentLanguage}
-                    />
+                    <div className="h-full border border-border rounded-lg overflow-hidden">
+                      <EnhancedOutputConsole 
+                        currentCode={currentCode} 
+                        currentLanguage={currentLanguage}
+                      />
+                    </div>
                   </div>
                 </ResizablePanel>
               </ResizablePanelGroup>
@@ -134,13 +137,14 @@ const Index = () => {
           <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
             <div className="h-full w-full border-l bg-card p-6">
               <Tabs defaultValue="guidance" className="h-full w-full">
-                <TabsList className="grid w-full grid-cols-6 text-xs">
+                <TabsList className="grid w-full grid-cols-7 text-xs">
                   <TabsTrigger value="guidance">Guide</TabsTrigger>
                   <TabsTrigger value="mentor">AI</TabsTrigger>
                   <TabsTrigger value="collab">Collab</TabsTrigger>
                   <TabsTrigger value="perf">Perf</TabsTrigger>
                   <TabsTrigger value="git">Git</TabsTrigger>
                   <TabsTrigger value="learn">Learn</TabsTrigger>
+                  <TabsTrigger value="feedback">Feedback</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="guidance" className="h-full mt-6">
@@ -174,6 +178,10 @@ const Index = () => {
                 
                 <TabsContent value="learn" className="h-full mt-6">
                   <EducationalHub onCodeUpdate={handleRunCode} />
+                </TabsContent>
+                
+                <TabsContent value="feedback" className="h-full mt-6">
+                  <FeedbackSection />
                 </TabsContent>
               </Tabs>
             </div>
