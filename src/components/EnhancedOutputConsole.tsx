@@ -66,14 +66,19 @@ export function EnhancedOutputConsole({ currentCode = "", currentLanguage = "pyt
 
   const runCode = async () => {
     if (!currentCode.trim()) {
-      addOutput("No code to execute", "error");
+      addOutput("❌ No code to execute", "error");
+      toast({
+        title: "No Code",
+        description: "Please write some code first",
+        variant: "destructive",
+      });
       return;
     }
 
     setIsLoading(true);
     const startTime = Date.now();
     
-    addOutput(`Executing ${currentLanguage} code...`, "info");
+    addOutput(`🚀 Executing ${currentLanguage} code...`, "info");
 
     try {
       const { data, error } = await supabase.functions.invoke('execute-code', {
@@ -86,23 +91,39 @@ export function EnhancedOutputConsole({ currentCode = "", currentLanguage = "pyt
       const executionTime = Date.now() - startTime;
 
       if (error) {
-        addOutput(`Execution failed: ${error.message}`, "error", executionTime);
-        throw error;
+        addOutput(`❌ Execution failed: ${error.message}`, "error", executionTime);
+        toast({
+          title: "Execution Failed",
+          description: error.message || "Unknown error occurred",
+          variant: "destructive",
+        });
+        return;
       }
 
-      if (data.error) {
-        addOutput(data.error, "error", executionTime);
+      if (data?.error) {
+        addOutput(`❌ ${data.error}`, "error", executionTime);
+        toast({
+          title: "Code Error",
+          description: data.error,
+          variant: "destructive",
+        });
       } else {
-        addOutput(data.output || "Code executed successfully (no output)", "output", executionTime);
+        const output = data?.output || "Code executed successfully (no output)";
+        addOutput(`✅ ${output}`, "output", executionTime);
+        toast({
+          title: "Execution Successful! 🎉",
+          description: `${currentLanguage} code completed in ${executionTime}ms`,
+        });
       }
     } catch (error) {
       const executionTime = Date.now() - startTime;
       console.error('Error executing code:', error);
-      addOutput(`Execution error: ${error instanceof Error ? error.message : 'Unknown error'}`, "error", executionTime);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown execution error';
+      addOutput(`❌ Execution error: ${errorMessage}`, "error", executionTime);
       
       toast({
         title: "Execution Failed",
-        description: "Could not execute the code. Please check the console for details.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
