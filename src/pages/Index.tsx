@@ -22,6 +22,7 @@ const Index = () => {
   const [currentProject, setCurrentProject] = useState<string | null>(null);
   const [roomId, setRoomId] = useState<string>("");
   const [userId] = useState<string>(() => Math.random().toString(36).substring(2, 10));
+  const [feedbackTabValue, setFeedbackTabValue] = useState<string>("guidance");
   
   const { isLoading, simulateLoading, overallProgress } = useProgressiveLoading();
   const { saveToCache } = useCodeCache();
@@ -71,6 +72,10 @@ const Index = () => {
     return extensions[language] || 'txt';
   };
 
+  const handleFeedbackClick = () => {
+    setFeedbackTabValue("feedback");
+  };
+
   // Show loading screen while initializing
   if (isLoading) {
     return (
@@ -95,7 +100,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen w-full bg-background">
-      <Header currentProject={currentProject} />
+      <Header currentProject={currentProject} onFeedbackClick={handleFeedbackClick} />
       
       <div className="h-[calc(100vh-4rem)] w-full">
         <ResizablePanelGroup direction="horizontal" className="h-full w-full">
@@ -136,7 +141,7 @@ const Index = () => {
           {/* Right Sidebar */}
           <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
             <div className="h-full w-full border-l bg-card p-6">
-              <Tabs defaultValue="guidance" className="h-full w-full">
+              <Tabs value={feedbackTabValue} onValueChange={setFeedbackTabValue} className="h-full w-full">
                 <TabsList className="grid w-full grid-cols-7 text-xs">
                   <TabsTrigger value="guidance">Guide</TabsTrigger>
                   <TabsTrigger value="mentor">AI</TabsTrigger>
