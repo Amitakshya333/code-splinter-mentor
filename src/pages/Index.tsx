@@ -142,14 +142,13 @@ const Index = () => {
           <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
             <div className="h-full w-full border-l bg-card p-6">
               <Tabs value={feedbackTabValue} onValueChange={setFeedbackTabValue} className="h-full w-full">
-                <TabsList className="grid w-full grid-cols-7 text-xs">
+                <TabsList className="grid w-full grid-cols-6 text-xs">
                   <TabsTrigger value="guidance">Guide</TabsTrigger>
                   <TabsTrigger value="mentor">AI</TabsTrigger>
                   <TabsTrigger value="collab">Collab</TabsTrigger>
                   <TabsTrigger value="perf">Perf</TabsTrigger>
                   <TabsTrigger value="git">Git</TabsTrigger>
                   <TabsTrigger value="learn">Learn</TabsTrigger>
-                  <TabsTrigger value="feedback">Feedback</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="guidance" className="h-full mt-6">
