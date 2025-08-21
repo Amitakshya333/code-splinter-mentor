@@ -9,10 +9,12 @@ import { PerformancePanel } from "@/components/PerformancePanel";
 import { GitPanel } from "@/components/GitPanel";
 import { EducationalHub } from "@/components/EducationalHub";
 import { FeedbackSection } from "@/components/FeedbackSection";
+import { LayoutSettings } from "@/components/LayoutSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { useProgressiveLoading } from "@/hooks/useProgressiveLoading";
 import { useCodeCache } from "@/hooks/useCodeCache";
+import { useLayoutSettings } from "@/hooks/useLayoutSettings";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -26,6 +28,7 @@ const Index = () => {
   
   const { isLoading, simulateLoading, overallProgress } = useProgressiveLoading();
   const { saveToCache } = useCodeCache();
+  const { settings, isLoaded: layoutLoaded } = useLayoutSettings();
 
   // Initialize room ID from URL params or generate new one
   useEffect(() => {
@@ -77,7 +80,7 @@ const Index = () => {
   };
 
   // Show loading screen while initializing
-  if (isLoading) {
+  if (isLoading || !layoutLoaded) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
@@ -102,14 +105,27 @@ const Index = () => {
     <div className="min-h-screen w-full bg-background">
       <Header currentProject={currentProject} onFeedbackClick={handleFeedbackClick} />
       
+      {/* Layout Settings Panel */}
+      <div className="fixed top-4 right-4 z-50">
+        <LayoutSettings />
+      </div>
+      
       <div className="h-[calc(100vh-4rem)] w-full">
         <ResizablePanelGroup direction="horizontal" className="h-full w-full">
           {/* Main Content Area */}
-          <ResizablePanel defaultSize={75} minSize={50}>
+          <ResizablePanel 
+            defaultSize={settings.mainContentWidth} 
+            minSize={settings.sidebarVisible ? 50 : 90} 
+            maxSize={settings.sidebarVisible ? 90 : 100}
+          >
             <div className="h-full w-full p-6">
               <ResizablePanelGroup direction="vertical" className="h-full w-full">
                 {/* Code Editor */}
-                <ResizablePanel defaultSize={65} minSize={45} maxSize={80}>
+                <ResizablePanel 
+                  defaultSize={settings.codeEditorHeight} 
+                  minSize={30} 
+                  maxSize={80}
+                >
                   <div className="h-full pr-3">
                     <EnhancedCodeEditor 
                       onCodeChange={setCurrentCode} 
@@ -122,7 +138,11 @@ const Index = () => {
                 <ResizableHandle withHandle />
                 
                 {/* Output Console */}
-                <ResizablePanel defaultSize={35} minSize={20} maxSize={55}>
+                <ResizablePanel 
+                  defaultSize={settings.consoleHeight} 
+                  minSize={20} 
+                  maxSize={70}
+                >
                   <div className="h-full pt-3 pr-3">
                     <div className="h-full border border-border rounded-lg overflow-hidden">
                       <EnhancedOutputConsole 
@@ -136,60 +156,68 @@ const Index = () => {
             </div>
           </ResizablePanel>
 
-          <ResizableHandle withHandle />
+          {settings.sidebarVisible && (
+            <>
+              <ResizableHandle withHandle />
 
-          {/* Right Sidebar */}
-          <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
-            <div className="h-full w-full border-l bg-card p-6">
-              <Tabs value={feedbackTabValue} onValueChange={setFeedbackTabValue} className="h-full w-full">
-                <TabsList className="grid w-full grid-cols-6 text-xs">
-                  <TabsTrigger value="guidance">Guide</TabsTrigger>
-                  <TabsTrigger value="mentor">AI</TabsTrigger>
-                  <TabsTrigger value="collab">Collab</TabsTrigger>
-                  <TabsTrigger value="perf">Perf</TabsTrigger>
-                  <TabsTrigger value="git">Git</TabsTrigger>
-                  <TabsTrigger value="learn">Learn</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="guidance" className="h-full mt-6">
-                  <ProjectGuidance 
-                    onProjectSelect={setCurrentProject}
-                  />
-                </TabsContent>
-                
-                <TabsContent value="mentor" className="h-full mt-6">
-                  <AIChatMentor 
-                    currentCode={currentCode}
-                    currentProject={currentProject}
-                  />
-                </TabsContent>
-                
-                <TabsContent value="collab" className="h-full mt-6">
-                  <CollaborationPanel 
-                    roomId={roomId}
-                    userId={userId}
-                    onShareRoom={handleShareRoom}
-                  />
-                </TabsContent>
-                
-                <TabsContent value="perf" className="h-full mt-6">
-                  <PerformancePanel />
-                </TabsContent>
-                
-                <TabsContent value="git" className="h-full mt-6">
-                  <GitPanel />
-                </TabsContent>
-                
-                <TabsContent value="learn" className="h-full mt-6">
-                  <EducationalHub onCodeUpdate={handleRunCode} />
-                </TabsContent>
-                
-                <TabsContent value="feedback" className="h-full mt-6">
-                  <FeedbackSection />
-                </TabsContent>
-              </Tabs>
-            </div>
-          </ResizablePanel>
+              {/* Right Sidebar */}
+              <ResizablePanel 
+                defaultSize={settings.sidebarWidth} 
+                minSize={15} 
+                maxSize={45}
+              >
+                <div className="h-full w-full border-l bg-card p-6">
+                  <Tabs value={feedbackTabValue} onValueChange={setFeedbackTabValue} className="h-full w-full">
+                    <TabsList className="grid w-full grid-cols-6 text-xs">
+                      <TabsTrigger value="guidance">Guide</TabsTrigger>
+                      <TabsTrigger value="mentor">AI</TabsTrigger>
+                      <TabsTrigger value="collab">Collab</TabsTrigger>
+                      <TabsTrigger value="perf">Perf</TabsTrigger>
+                      <TabsTrigger value="git">Git</TabsTrigger>
+                      <TabsTrigger value="learn">Learn</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="guidance" className="h-full mt-6">
+                      <ProjectGuidance 
+                        onProjectSelect={setCurrentProject}
+                      />
+                    </TabsContent>
+                    
+                    <TabsContent value="mentor" className="h-full mt-6">
+                      <AIChatMentor 
+                        currentCode={currentCode}
+                        currentProject={currentProject}
+                      />
+                    </TabsContent>
+                    
+                    <TabsContent value="collab" className="h-full mt-6">
+                      <CollaborationPanel 
+                        roomId={roomId}
+                        userId={userId}
+                        onShareRoom={handleShareRoom}
+                      />
+                    </TabsContent>
+                    
+                    <TabsContent value="perf" className="h-full mt-6">
+                      <PerformancePanel />
+                    </TabsContent>
+                    
+                    <TabsContent value="git" className="h-full mt-6">
+                      <GitPanel />
+                    </TabsContent>
+                    
+                    <TabsContent value="learn" className="h-full mt-6">
+                      <EducationalHub onCodeUpdate={handleRunCode} />
+                    </TabsContent>
+                    
+                    <TabsContent value="feedback" className="h-full mt-6">
+                      <FeedbackSection />
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              </ResizablePanel>
+            </>
+          )}
         </ResizablePanelGroup>
       </div>
     </div>
