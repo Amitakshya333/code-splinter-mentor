@@ -488,14 +488,12 @@ export function EnhancedCodeEditor({ onCodeChange, onLanguageChange, onRun }: En
 
   const handleClear = () => {
     if (confirm("Are you sure you want to clear the editor?")) {
-      const selectedLang = languages.find(lang => lang.id === selectedLanguage);
-      const defaultCode = selectedLang?.template || "";
-      setCode(defaultCode);
-      onCodeChange?.(defaultCode);
+      setCode("");
+      onCodeChange?.("");
       
       toast({
         title: "Editor Cleared",
-        description: "Code has been reset to template",
+        description: "Code editor has been cleared completely",
       });
     }
   };
