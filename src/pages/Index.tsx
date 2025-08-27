@@ -109,30 +109,39 @@ const Index = () => {
         <LayoutSettings />
       </div>
       
-      <div className="h-[calc(100vh-4rem)] w-full flex">
+      <div className="h-[calc(100vh-4rem)] w-full flex overflow-hidden">
         {/* Main Content Area */}
         <div 
-          className="flex flex-col p-6 transition-all duration-300"
+          className="flex flex-col p-6 transition-all duration-300 ease-in-out min-w-0"
           style={{ 
-            width: settings.sidebarVisible ? `${settings.mainContentWidth}%` : '100%' 
+            width: settings.sidebarVisible ? `${settings.mainContentWidth}%` : '100%',
+            maxWidth: settings.sidebarVisible ? `${settings.mainContentWidth}%` : '100%'
           }}
         >
           {/* Code Editor */}
           <div 
-            className="transition-all duration-300 pr-3"
-            style={{ height: `${settings.codeEditorHeight}%` }}
+            className="transition-all duration-300 ease-in-out pr-3 min-h-0"
+            style={{ 
+              height: `${settings.codeEditorHeight}%`,
+              maxHeight: `${settings.codeEditorHeight}%`
+            }}
           >
-            <EnhancedCodeEditor 
-              onCodeChange={setCurrentCode} 
-              onLanguageChange={setCurrentLanguage}
-              onRun={handleRunCode}
-            />
+            <div className="h-full border border-border rounded-lg overflow-hidden">
+              <EnhancedCodeEditor 
+                onCodeChange={setCurrentCode} 
+                onLanguageChange={setCurrentLanguage}
+                onRun={handleRunCode}
+              />
+            </div>
           </div>
           
           {/* Output Console */}
           <div 
-            className="pt-3 pr-3 transition-all duration-300"
-            style={{ height: `${settings.consoleHeight}%` }}
+            className="pt-3 pr-3 transition-all duration-300 ease-in-out min-h-0"
+            style={{ 
+              height: `${settings.consoleHeight}%`,
+              maxHeight: `${settings.consoleHeight}%`
+            }}
           >
             <div className="h-full border border-border rounded-lg overflow-hidden">
               <EnhancedOutputConsole 
@@ -146,8 +155,11 @@ const Index = () => {
         {/* Right Sidebar */}
         {settings.sidebarVisible && (
           <div 
-            className="border-l bg-card p-6 transition-all duration-300"
-            style={{ width: `${settings.sidebarWidth}%` }}
+            className="border-l bg-card p-6 transition-all duration-300 ease-in-out min-w-0 overflow-hidden"
+            style={{ 
+              width: `${settings.sidebarWidth}%`,
+              maxWidth: `${settings.sidebarWidth}%`
+            }}
           >
             <Tabs value={feedbackTabValue} onValueChange={setFeedbackTabValue} className="h-full w-full">
               <TabsList className="grid w-full grid-cols-6 text-xs">

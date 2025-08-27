@@ -74,9 +74,15 @@ export const LayoutSettings: React.FC<LayoutSettingsProps> = ({ className }) => 
                 </div>
                 <Slider
                   value={[settings.mainContentWidth]}
-                  onValueChange={([value]) => updateSetting('mainContentWidth', value)}
+                  onValueChange={([value]) => {
+                    updateSetting('mainContentWidth', value);
+                    // Auto-adjust sidebar width to maintain 100% total
+                    if (settings.sidebarVisible) {
+                      updateSetting('sidebarWidth', 100 - value);
+                    }
+                  }}
                   min={50}
-                  max={90}
+                  max={85}
                   step={1}
                   className="w-full"
                 />
@@ -132,10 +138,11 @@ export const LayoutSettings: React.FC<LayoutSettingsProps> = ({ className }) => 
                     value={[settings.sidebarWidth]}
                     onValueChange={([value]) => {
                       updateSetting('sidebarWidth', value);
+                      // Auto-adjust main content width to maintain 100% total
                       updateSetting('mainContentWidth', 100 - value);
                     }}
                     min={15}
-                    max={45}
+                    max={50}
                     step={1}
                     className="w-full"
                   />
