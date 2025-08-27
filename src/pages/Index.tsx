@@ -11,7 +11,6 @@ import { EducationalHub } from "@/components/EducationalHub";
 import { FeedbackSection } from "@/components/FeedbackSection";
 import { LayoutSettings } from "@/components/LayoutSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { useProgressiveLoading } from "@/hooks/useProgressiveLoading";
 import { useCodeCache } from "@/hooks/useCodeCache";
 import { useLayoutSettings } from "@/hooks/useLayoutSettings";
@@ -110,123 +109,95 @@ const Index = () => {
         <LayoutSettings />
       </div>
       
-      <div className="h-[calc(100vh-4rem)] w-full">
-        <ResizablePanelGroup 
-          direction="horizontal" 
-          className="h-full w-full"
-          key={`layout-${settings.mainContentWidth}-${settings.sidebarWidth}-${settings.sidebarVisible}`}
+      <div className="h-[calc(100vh-4rem)] w-full flex">
+        {/* Main Content Area */}
+        <div 
+          className="flex flex-col p-6 transition-all duration-300"
+          style={{ 
+            width: settings.sidebarVisible ? `${settings.mainContentWidth}%` : '100%' 
+          }}
         >
-          {/* Main Content Area */}
-          <ResizablePanel 
-            defaultSize={settings.mainContentWidth} 
-            minSize={settings.sidebarVisible ? 50 : 90} 
-            maxSize={settings.sidebarVisible ? 90 : 100}
+          {/* Code Editor */}
+          <div 
+            className="transition-all duration-300 pr-3"
+            style={{ height: `${settings.codeEditorHeight}%` }}
           >
-            <div className="h-full w-full p-6">
-              <ResizablePanelGroup 
-                direction="vertical" 
-                className="h-full w-full"
-                key={`vertical-${settings.codeEditorHeight}-${settings.consoleHeight}`}
-              >
-                {/* Code Editor */}
-                <ResizablePanel 
-                  defaultSize={settings.codeEditorHeight} 
-                  minSize={30} 
-                  maxSize={80}
-                >
-                  <div className="h-full pr-3">
-                    <EnhancedCodeEditor 
-                      onCodeChange={setCurrentCode} 
-                      onLanguageChange={setCurrentLanguage}
-                      onRun={handleRunCode}
-                    />
-                  </div>
-                </ResizablePanel>
-                
-                <ResizableHandle withHandle />
-                
-                {/* Output Console */}
-                <ResizablePanel 
-                  defaultSize={settings.consoleHeight} 
-                  minSize={20} 
-                  maxSize={70}
-                >
-                  <div className="h-full pt-3 pr-3">
-                    <div className="h-full border border-border rounded-lg overflow-hidden">
-                      <EnhancedOutputConsole 
-                        currentCode={currentCode} 
-                        currentLanguage={currentLanguage}
-                      />
-                    </div>
-                  </div>
-                </ResizablePanel>
-              </ResizablePanelGroup>
+            <EnhancedCodeEditor 
+              onCodeChange={setCurrentCode} 
+              onLanguageChange={setCurrentLanguage}
+              onRun={handleRunCode}
+            />
+          </div>
+          
+          {/* Output Console */}
+          <div 
+            className="pt-3 pr-3 transition-all duration-300"
+            style={{ height: `${settings.consoleHeight}%` }}
+          >
+            <div className="h-full border border-border rounded-lg overflow-hidden">
+              <EnhancedOutputConsole 
+                currentCode={currentCode} 
+                currentLanguage={currentLanguage}
+              />
             </div>
-          </ResizablePanel>
+          </div>
+        </div>
 
-          {settings.sidebarVisible && (
-            <>
-              <ResizableHandle withHandle />
-
-              {/* Right Sidebar */}
-              <ResizablePanel 
-                defaultSize={settings.sidebarWidth} 
-                minSize={15} 
-                maxSize={45}
-              >
-                <div className="h-full w-full border-l bg-card p-6">
-                  <Tabs value={feedbackTabValue} onValueChange={setFeedbackTabValue} className="h-full w-full">
-                    <TabsList className="grid w-full grid-cols-6 text-xs">
-                      <TabsTrigger value="guidance">Guide</TabsTrigger>
-                      <TabsTrigger value="mentor">AI</TabsTrigger>
-                      <TabsTrigger value="collab">Collab</TabsTrigger>
-                      <TabsTrigger value="perf">Perf</TabsTrigger>
-                      <TabsTrigger value="git">Git</TabsTrigger>
-                      <TabsTrigger value="learn">Learn</TabsTrigger>
-                    </TabsList>
-                    
-                    <TabsContent value="guidance" className="h-full mt-6">
-                      <ProjectGuidance 
-                        onProjectSelect={setCurrentProject}
-                      />
-                    </TabsContent>
-                    
-                    <TabsContent value="mentor" className="h-full mt-6">
-                      <AIChatMentor 
-                        currentCode={currentCode}
-                        currentProject={currentProject}
-                      />
-                    </TabsContent>
-                    
-                    <TabsContent value="collab" className="h-full mt-6">
-                      <CollaborationPanel 
-                        roomId={roomId}
-                        userId={userId}
-                        onShareRoom={handleShareRoom}
-                      />
-                    </TabsContent>
-                    
-                    <TabsContent value="perf" className="h-full mt-6">
-                      <PerformancePanel />
-                    </TabsContent>
-                    
-                    <TabsContent value="git" className="h-full mt-6">
-                      <GitPanel />
-                    </TabsContent>
-                    
-                    <TabsContent value="learn" className="h-full mt-6">
-                      <EducationalHub onCodeUpdate={handleRunCode} />
-                    </TabsContent>
-                    
-                    <TabsContent value="feedback" className="h-full mt-6">
-                      <FeedbackSection />
-                    </TabsContent>
-                  </Tabs>
-                </div>
-              </ResizablePanel>
-            </>
-          )}
-        </ResizablePanelGroup>
+        {/* Right Sidebar */}
+        {settings.sidebarVisible && (
+          <div 
+            className="border-l bg-card p-6 transition-all duration-300"
+            style={{ width: `${settings.sidebarWidth}%` }}
+          >
+            <Tabs value={feedbackTabValue} onValueChange={setFeedbackTabValue} className="h-full w-full">
+              <TabsList className="grid w-full grid-cols-6 text-xs">
+                <TabsTrigger value="guidance">Guide</TabsTrigger>
+                <TabsTrigger value="mentor">AI</TabsTrigger>
+                <TabsTrigger value="collab">Collab</TabsTrigger>
+                <TabsTrigger value="perf">Perf</TabsTrigger>
+                <TabsTrigger value="git">Git</TabsTrigger>
+                <TabsTrigger value="learn">Learn</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="guidance" className="h-full mt-6">
+                <ProjectGuidance 
+                  onProjectSelect={setCurrentProject}
+                />
+              </TabsContent>
+              
+              <TabsContent value="mentor" className="h-full mt-6">
+                <AIChatMentor 
+                  currentCode={currentCode}
+                  currentProject={currentProject}
+                />
+              </TabsContent>
+              
+              <TabsContent value="collab" className="h-full mt-6">
+                <CollaborationPanel 
+                  roomId={roomId}
+                  userId={userId}
+                  onShareRoom={handleShareRoom}
+                />
+              </TabsContent>
+              
+              <TabsContent value="perf" className="h-full mt-6">
+                <PerformancePanel />
+              </TabsContent>
+              
+              <TabsContent value="git" className="h-full mt-6">
+                <GitPanel />
+              </TabsContent>
+              
+              <TabsContent value="learn" className="h-full mt-6">
+                <EducationalHub onCodeUpdate={handleRunCode} />
+              </TabsContent>
+              
+              <TabsContent value="feedback" className="h-full mt-6">
+                <FeedbackSection />
+              </TabsContent>
+            </Tabs>
+          </div>
+        )}
       </div>
     </div>
   );
