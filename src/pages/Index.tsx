@@ -111,7 +111,11 @@ const Index = () => {
       </div>
       
       <div className="h-[calc(100vh-4rem)] w-full">
-        <ResizablePanelGroup direction="horizontal" className="h-full w-full">
+        <ResizablePanelGroup 
+          direction="horizontal" 
+          className="h-full w-full"
+          key={`layout-${settings.mainContentWidth}-${settings.sidebarWidth}-${settings.sidebarVisible}`}
+        >
           {/* Main Content Area */}
           <ResizablePanel 
             defaultSize={settings.mainContentWidth} 
@@ -119,7 +123,11 @@ const Index = () => {
             maxSize={settings.sidebarVisible ? 90 : 100}
           >
             <div className="h-full w-full p-6">
-              <ResizablePanelGroup direction="vertical" className="h-full w-full">
+              <ResizablePanelGroup 
+                direction="vertical" 
+                className="h-full w-full"
+                key={`vertical-${settings.codeEditorHeight}-${settings.consoleHeight}`}
+              >
                 {/* Code Editor */}
                 <ResizablePanel 
                   defaultSize={settings.codeEditorHeight} 
