@@ -46,6 +46,51 @@ const projectTemplates = [
     estimatedTime: "1-2 hours"
   },
   {
+    id: "weather-app",
+    name: "Weather Dashboard",
+    description: "Display weather data with beautiful UI",
+    difficulty: "Beginner",
+    icon: Globe,
+    skills: ["API Integration", "React", "Responsive Design"],
+    estimatedTime: "2-4 hours"
+  },
+  {
+    id: "memory-game",
+    name: "Memory Card Game",
+    description: "Interactive memory matching game",
+    difficulty: "Beginner",
+    icon: Gamepad2,
+    skills: ["JavaScript", "Game Logic", "Animations"],
+    estimatedTime: "2-3 hours"
+  },
+  {
+    id: "password-generator",
+    name: "Password Generator",
+    description: "Secure password generation tool",
+    difficulty: "Beginner",
+    icon: Code2,
+    skills: ["JavaScript", "Security", "UI/UX"],
+    estimatedTime: "1-2 hours"
+  },
+  {
+    id: "portfolio",
+    name: "Portfolio Website",
+    description: "Showcase your work and skills",
+    difficulty: "Intermediate",
+    icon: Target,
+    skills: ["React", "Responsive Design", "Animations"],
+    estimatedTime: "4-6 hours"
+  },
+  {
+    id: "chat-app",
+    name: "Real-time Chat",
+    description: "Build a messaging application",
+    difficulty: "Intermediate",
+    icon: MessageSquare,
+    skills: ["WebSockets", "React", "Database", "Authentication"],
+    estimatedTime: "5-8 hours"
+  },
+  {
     id: "blog",
     name: "Personal Blog",
     description: "Build a blog with posts and comments",
@@ -55,6 +100,60 @@ const projectTemplates = [
     estimatedTime: "4-6 hours"
   },
   {
+    id: "budget-tracker",
+    name: "Budget Tracker",
+    description: "Personal finance management app",
+    difficulty: "Intermediate",
+    icon: Target,
+    skills: ["React", "Charts", "Data Visualization", "Local Storage"],
+    estimatedTime: "4-6 hours"
+  },
+  {
+    id: "recipe-finder",
+    name: "Recipe Finder",
+    description: "Search and save favorite recipes",
+    difficulty: "Intermediate",
+    icon: Database,
+    skills: ["API Integration", "Search", "Favorites System"],
+    estimatedTime: "3-5 hours"
+  },
+  {
+    id: "quiz-game",
+    name: "Interactive Quiz",
+    description: "Trivia game with scoring system",
+    difficulty: "Intermediate",
+    icon: Trophy,
+    skills: ["Game Logic", "API Integration", "State Management"],
+    estimatedTime: "3-4 hours"
+  },
+  {
+    id: "habit-tracker",
+    name: "Habit Tracker",
+    description: "Track daily habits and streaks",
+    difficulty: "Intermediate",
+    icon: CheckCircle,
+    skills: ["React", "Calendar UI", "Progress Tracking"],
+    estimatedTime: "4-5 hours"
+  },
+  {
+    id: "music-player",
+    name: "Music Player",
+    description: "Audio streaming with playlists",
+    difficulty: "Advanced",
+    icon: Gamepad2,
+    skills: ["Audio APIs", "React", "File Handling", "UI/UX"],
+    estimatedTime: "6-10 hours"
+  },
+  {
+    id: "drawing-app",
+    name: "Digital Drawing App",
+    description: "Canvas-based drawing tool",
+    difficulty: "Advanced",
+    icon: Palette,
+    skills: ["Canvas API", "Touch Events", "File Export"],
+    estimatedTime: "8-12 hours"
+  },
+  {
     id: "ecommerce",
     name: "E-commerce Store",
     description: "Create an online shopping platform",
@@ -62,6 +161,33 @@ const projectTemplates = [
     icon: ShoppingCart,
     skills: ["React", "Payment APIs", "Database", "Authentication"],
     estimatedTime: "8-12 hours"
+  },
+  {
+    id: "social-dashboard",
+    name: "Social Media Dashboard",
+    description: "Analytics dashboard with data visualization",
+    difficulty: "Advanced",
+    icon: Database,
+    skills: ["Charts", "Real-time Data", "API Integration", "Complex UI"],
+    estimatedTime: "10-15 hours"
+  },
+  {
+    id: "code-editor",
+    name: "Code Editor",
+    description: "Web-based code editor with syntax highlighting",
+    difficulty: "Advanced",
+    icon: Code2,
+    skills: ["Monaco Editor", "Syntax Highlighting", "File System"],
+    estimatedTime: "12-20 hours"
+  },
+  {
+    id: "video-streaming",
+    name: "Video Streaming App",
+    description: "Netflix-like streaming platform",
+    difficulty: "Advanced",
+    icon: Globe,
+    skills: ["Video APIs", "Search", "User Management", "Recommendations"],
+    estimatedTime: "15-25 hours"
   }
 ];
 
