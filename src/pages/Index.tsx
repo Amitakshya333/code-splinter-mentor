@@ -115,7 +115,8 @@ const Index = () => {
           className="flex flex-col p-6 transition-all duration-300 ease-in-out min-w-0"
           style={{ 
             width: settings.sidebarVisible ? `${settings.mainContentWidth}%` : '100%',
-            maxWidth: settings.sidebarVisible ? `${settings.mainContentWidth}%` : '100%'
+            maxWidth: settings.sidebarVisible ? `${settings.mainContentWidth}%` : '100%',
+            flex: 'none'
           }}
         >
           {/* Code Editor */}
@@ -158,7 +159,8 @@ const Index = () => {
             className="border-l bg-card p-6 transition-all duration-300 ease-in-out min-w-0 overflow-hidden"
             style={{ 
               width: `${settings.sidebarWidth}%`,
-              maxWidth: `${settings.sidebarWidth}%`
+              maxWidth: `${settings.sidebarWidth}%`,
+              flex: 'none'
             }}
           >
             <Tabs value={feedbackTabValue} onValueChange={setFeedbackTabValue} className="h-full w-full">
