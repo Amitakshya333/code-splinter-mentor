@@ -112,11 +112,10 @@ const Index = () => {
       <div className="h-[calc(100vh-4rem)] w-full flex overflow-hidden">
         {/* Main Content Area */}
         <div 
-          className="flex flex-col p-6 transition-all duration-300 ease-in-out min-w-0"
+          className="flex flex-col p-6 transition-all duration-300 ease-in-out"
           style={{ 
             width: settings.sidebarVisible ? `${settings.mainContentWidth}%` : '100%',
-            maxWidth: settings.sidebarVisible ? `${settings.mainContentWidth}%` : '100%',
-            flex: 'none'
+            flex: '0 0 auto'
           }}
         >
           {/* Code Editor */}
@@ -156,11 +155,10 @@ const Index = () => {
         {/* Right Sidebar */}
         {settings.sidebarVisible && (
           <div 
-            className="border-l bg-card p-6 transition-all duration-300 ease-in-out min-w-0 overflow-hidden"
+            className="border-l bg-card p-6 transition-all duration-300 ease-in-out overflow-hidden"
             style={{ 
               width: `${settings.sidebarWidth}%`,
-              maxWidth: `${settings.sidebarWidth}%`,
-              flex: 'none'
+              flex: '0 0 auto'
             }}
           >
             <Tabs value={feedbackTabValue} onValueChange={setFeedbackTabValue} className="h-full w-full">
