@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { Header } from "@/components/Header";
-import { EnhancedCodeEditor } from "@/components/EnhancedCodeEditor";
+import { LazyCodeEditor } from "@/components/LazyCodeEditor";
 import { EnhancedOutputConsole } from "@/components/EnhancedOutputConsole";
 import { ProjectGuidance } from "@/components/ProjectGuidance";
 import { AIChatMentor } from "@/components/AIChatMentor";
@@ -17,14 +17,49 @@ import { useLayoutSettings } from "@/hooks/useLayoutSettings";
 import { useResponsive } from "@/hooks/useResponsive";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { useAppStore } from "@/store/useAppStore";
+
+// Memoized loading component
+const LoadingScreen = memo(({ progress }: { progress: number }) => (
+  <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <Card className="w-full max-w-md">
+      <CardContent className="p-6 space-y-4">
+        <div className="text-center">
+          <h2 className="text-lg font-semibold mb-2">Loading Code Editor</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Initializing components and features...
+          </p>
+        </div>
+        <Progress value={progress} className="h-2" />
+        <div className="text-center text-xs text-muted-foreground">
+          {Math.round(progress)}% complete
+        </div>
+      </CardContent>
+    </Card>
+  </div>
+));
+
+LoadingScreen.displayName = 'LoadingScreen';
 
 const Index = () => {
-  const [currentCode, setCurrentCode] = useState<string>("");
-  const [currentLanguage, setCurrentLanguage] = useState<string>("python");
-  const [currentProject, setCurrentProject] = useState<string | null>(null);
-  const [roomId, setRoomId] = useState<string>("");
-  const [userId] = useState<string>(() => Math.random().toString(36).substring(2, 10));
-  const [feedbackTabValue, setFeedbackTabValue] = useState<string>("guidance");
+  // Use Zustand store for global state
+  const {
+    currentCode,
+    currentLanguage,
+    currentProject,
+    roomId,
+    userId,
+    feedbackTabValue,
+    setCurrentCode,
+    setCurrentLanguage,
+    setCurrentProject,
+    setRoomId,
+    setUserId,
+    setFeedbackTabValue,
+    updatePerformanceMetrics,
+    addError
+  } = useAppStore();
   
   const { isLoading, simulateLoading, overallProgress } = useProgressiveLoading();
   const { saveToCache } = useCodeCache();
@@ -42,26 +77,63 @@ const Index = () => {
       setRoomId(newRoomId);
       window.history.replaceState({}, '', `?room=${newRoomId}`);
     }
-  }, []);
+
+    // Initialize userId if not set
+    if (!userId) {
+      setUserId(Math.random().toString(36).substring(2, 10));
+    }
+
+    // Track performance metrics
+    const startTime = performance.now();
+    const observer = new PerformanceObserver((list) => {
+      const entries = list.getEntries();
+      entries.forEach((entry) => {
+        if (entry.entryType === 'measure') {
+          updatePerformanceMetrics({
+            renderTime: entry.duration,
+            loadTime: performance.now() - startTime
+          });
+        }
+      });
+    });
+    observer.observe({ entryTypes: ['measure'] });
+
+    return () => observer.disconnect();
+  }, [setRoomId, setUserId, userId, updatePerformanceMetrics]);
 
   // Start progressive loading
   useEffect(() => {
-    simulateLoading();
-  }, [simulateLoading]);
+    const loadingTimer = setTimeout(() => {
+      simulateLoading().catch((error) => {
+        addError('Failed to complete loading sequence', 'progressive-loading');
+      });
+    }, 100);
 
-  const handleRunCode = (code: string, language: string) => {
-    setCurrentCode(code);
-    setCurrentLanguage(language);
-    
-    // Cache the code
-    saveToCache(`${Date.now()}`, language, code, `untitled.${getFileExtension(language)}`);
-  };
+    return () => clearTimeout(loadingTimer);
+  }, [simulateLoading, addError]);
 
-  const handleShareRoom = (roomId: string) => {
-    window.history.replaceState({}, '', `?room=${roomId}`);
-  };
+  // Memoized handlers to prevent unnecessary re-renders
+  const handleRunCode = useCallback((code: string, language: string) => {
+    try {
+      setCurrentCode(code);
+      setCurrentLanguage(language);
+      
+      // Cache the code
+      saveToCache(`${Date.now()}`, language, code, `untitled.${getFileExtension(language)}`);
+    } catch (error) {
+      addError('Failed to run code', 'code-execution');
+    }
+  }, [setCurrentCode, setCurrentLanguage, saveToCache, addError]);
 
-  const getFileExtension = (language: string) => {
+  const handleShareRoom = useCallback((roomId: string) => {
+    try {
+      window.history.replaceState({}, '', `?room=${roomId}`);
+    } catch (error) {
+      addError('Failed to update URL', 'room-sharing');
+    }
+  }, [addError]);
+
+  const getFileExtension = useCallback((language: string) => {
     const extensions: Record<string, string> = {
       javascript: 'js',
       typescript: 'ts',
@@ -74,32 +146,48 @@ const Index = () => {
       sql: 'sql',
     };
     return extensions[language] || 'txt';
-  };
+  }, []);
 
-  const handleFeedbackClick = () => {
+  const handleFeedbackClick = useCallback(() => {
     setFeedbackTabValue("feedback");
-  };
+  }, [setFeedbackTabValue]);
+
+  const handleCodeChange = useCallback((code: string) => {
+    setCurrentCode(code);
+  }, [setCurrentCode]);
+
+  const handleLanguageChange = useCallback((language: string) => {
+    setCurrentLanguage(language);
+  }, [setCurrentLanguage]);
+
+  const handleProjectSelect = useCallback((project: string) => {
+    setCurrentProject(project);
+  }, [setCurrentProject]);
+
+  // Memoize layout calculations
+  const layoutStyles = useMemo(() => ({
+    mainContent: {
+      width: settings.sidebarVisible && !isMobile ? `${settings.mainContentWidth}%` : '100%',
+      flex: isDesktop ? '0 0 auto' : '1 1 auto'
+    },
+    codeEditor: {
+      height: isDesktop ? `${settings.codeEditorHeight}%` : '50%',
+      maxHeight: isDesktop ? `${settings.codeEditorHeight}%` : '50%'
+    },
+    console: {
+      height: isDesktop ? `${settings.consoleHeight}%` : '50%',
+      maxHeight: isDesktop ? `${settings.consoleHeight}%` : '50%'
+    },
+    sidebar: {
+      width: isDesktop ? `${settings.sidebarWidth}%` : '100%',
+      height: isMobile ? '40vh' : 'auto',
+      flex: isDesktop ? '0 0 auto' : '0 0 40vh'
+    }
+  }), [settings, isMobile, isDesktop]);
 
   // Show loading screen while initializing
   if (isLoading || !layoutLoaded) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6 space-y-4">
-            <div className="text-center">
-              <h2 className="text-lg font-semibold mb-2">Loading Code Editor</h2>
-              <p className="text-sm text-muted-foreground mb-4">
-                Initializing components and features...
-              </p>
-            </div>
-            <Progress value={overallProgress} className="h-2" />
-            <div className="text-center text-xs text-muted-foreground">
-              {Math.round(overallProgress)}% complete
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <LoadingScreen progress={overallProgress} />;
   }
 
   return (
@@ -120,41 +208,36 @@ const Index = () => {
         {/* Main Content Area */}
         <div 
           className="flex flex-col p-3 md:p-6 transition-all duration-300 ease-in-out order-1 md:order-none"
-          style={{ 
-            width: settings.sidebarVisible && !isMobile ? `${settings.mainContentWidth}%` : '100%',
-            flex: isDesktop ? '0 0 auto' : '1 1 auto'
-          }}
+          style={layoutStyles.mainContent}
         >
           {/* Code Editor */}
           <div 
             className="transition-all duration-300 ease-in-out pr-0 md:pr-3 min-h-0 mb-3 md:mb-0"
-            style={{ 
-              height: isDesktop ? `${settings.codeEditorHeight}%` : '50%',
-              maxHeight: isDesktop ? `${settings.codeEditorHeight}%` : '50%'
-            }}
+            style={layoutStyles.codeEditor}
           >
             <div className="h-full border border-border rounded-lg overflow-hidden">
-              <EnhancedCodeEditor 
-                onCodeChange={setCurrentCode} 
-                onLanguageChange={setCurrentLanguage}
-                onRun={handleRunCode}
-              />
+              <ErrorBoundary>
+                <LazyCodeEditor 
+                  onCodeChange={handleCodeChange} 
+                  onLanguageChange={handleLanguageChange}
+                  onRun={handleRunCode}
+                />
+              </ErrorBoundary>
             </div>
           </div>
           
           {/* Output Console */}
           <div 
             className="pt-0 md:pt-3 pr-0 md:pr-3 transition-all duration-300 ease-in-out min-h-0"
-            style={{ 
-              height: isDesktop ? `${settings.consoleHeight}%` : '50%',
-              maxHeight: isDesktop ? `${settings.consoleHeight}%` : '50%'
-            }}
+            style={layoutStyles.console}
           >
             <div className="h-full border border-border rounded-lg overflow-hidden">
-              <EnhancedOutputConsole 
-                currentCode={currentCode} 
-                currentLanguage={currentLanguage}
-              />
+              <ErrorBoundary>
+                <EnhancedOutputConsole 
+                  currentCode={currentCode} 
+                  currentLanguage={currentLanguage}
+                />
+              </ErrorBoundary>
             </div>
           </div>
         </div>
@@ -163,11 +246,7 @@ const Index = () => {
         {settings.sidebarVisible && (
           <div 
             className="border-t md:border-t-0 md:border-l bg-card p-3 md:p-6 transition-all duration-300 ease-in-out overflow-hidden order-2 md:order-none"
-            style={{ 
-              width: isDesktop ? `${settings.sidebarWidth}%` : '100%',
-              height: isMobile ? '40vh' : 'auto',
-              flex: isDesktop ? '0 0 auto' : '0 0 40vh'
-            }}
+            style={layoutStyles.sidebar}
           >
             <Tabs value={feedbackTabValue} onValueChange={setFeedbackTabValue} className="h-full w-full">
               <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 text-xs mb-2 md:mb-0">
@@ -180,40 +259,54 @@ const Index = () => {
               </TabsList>
               
               <TabsContent value="guidance" className="h-full mt-6">
-                <ProjectGuidance 
-                  onProjectSelect={setCurrentProject}
-                />
+                <ErrorBoundary>
+                  <ProjectGuidance 
+                    onProjectSelect={handleProjectSelect}
+                  />
+                </ErrorBoundary>
               </TabsContent>
               
               <TabsContent value="mentor" className="h-full mt-6">
-                <AIChatMentor 
-                  currentCode={currentCode}
-                  currentProject={currentProject}
-                />
+                <ErrorBoundary>
+                  <AIChatMentor 
+                    currentCode={currentCode}
+                    currentProject={currentProject}
+                  />
+                </ErrorBoundary>
               </TabsContent>
               
               <TabsContent value="collab" className="h-full mt-6">
-                <CollaborationPanel 
-                  roomId={roomId}
-                  userId={userId}
-                  onShareRoom={handleShareRoom}
-                />
+                <ErrorBoundary>
+                  <CollaborationPanel 
+                    roomId={roomId}
+                    userId={userId}
+                    onShareRoom={handleShareRoom}
+                  />
+                </ErrorBoundary>
               </TabsContent>
               
               <TabsContent value="perf" className="h-full mt-6">
-                <PerformancePanel />
+                <ErrorBoundary>
+                  <PerformancePanel />
+                </ErrorBoundary>
               </TabsContent>
               
               <TabsContent value="git" className="h-full mt-6">
-                <GitPanel />
+                <ErrorBoundary>
+                  <GitPanel />
+                </ErrorBoundary>
               </TabsContent>
               
               <TabsContent value="learn" className="h-full mt-6">
-                <EducationalHub onCodeUpdate={handleRunCode} />
+                <ErrorBoundary>
+                  <EducationalHub onCodeUpdate={handleRunCode} />
+                </ErrorBoundary>
               </TabsContent>
               
               <TabsContent value="feedback" className="h-full mt-6">
-                <FeedbackSection />
+                <ErrorBoundary>
+                  <FeedbackSection />
+                </ErrorBoundary>
               </TabsContent>
             </Tabs>
           </div>

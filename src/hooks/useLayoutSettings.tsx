@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 export type Theme = 'light' | 'dark' | 'amoled';
 
@@ -31,45 +31,62 @@ export const useLayoutSettings = () => {
 
   // Load settings from localStorage on mount
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('codesplinter-layout-settings');
-      if (saved) {
-        const parsedSettings = JSON.parse(saved);
-        setSettings({ ...defaultSettings, ...parsedSettings });
+    let isMounted = true;
+
+    const loadSettings = async () => {
+      try {
+        const saved = localStorage.getItem('codesplinter-layout-settings');
+        if (saved && isMounted) {
+          const parsedSettings = JSON.parse(saved);
+          setSettings({ ...defaultSettings, ...parsedSettings });
+        }
+      } catch (error) {
+        console.warn('Failed to load layout settings:', error);
+      } finally {
+        if (isMounted) {
+          setIsLoaded(true);
+        }
       }
-    } catch (error) {
-      console.warn('Failed to load layout settings:', error);
-    } finally {
-      setIsLoaded(true);
-    }
+    };
+
+    loadSettings();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  // Save settings to localStorage whenever they change
+  // Save settings to localStorage whenever they change (debounced)
   useEffect(() => {
-    if (isLoaded) {
+    if (!isLoaded) return;
+
+    const timeoutId = setTimeout(() => {
       try {
         localStorage.setItem('codesplinter-layout-settings', JSON.stringify(settings));
       } catch (error) {
         console.warn('Failed to save layout settings:', error);
       }
-    }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timeoutId);
   }, [settings, isLoaded]);
 
-  // Apply theme changes to document
+  // Apply theme changes to document (memoized)
   useEffect(() => {
-    if (isLoaded) {
-      const root = document.documentElement;
-      root.classList.remove('light', 'dark', 'amoled');
-      
-      if (settings.theme === 'amoled') {
-        root.classList.add('dark', 'amoled');
-      } else {
-        root.classList.add(settings.theme);
-      }
+    if (!isLoaded) return;
+
+    const root = document.documentElement;
+    root.classList.remove('light', 'dark', 'amoled');
+    
+    if (settings.theme === 'amoled') {
+      root.classList.add('dark', 'amoled');
+    } else {
+      root.classList.add(settings.theme);
     }
   }, [settings.theme, isLoaded]);
 
-  const updateSetting = <K extends keyof LayoutSettings>(
+  // Memoized update function to prevent unnecessary re-renders
+  const updateSetting = useCallback(<K extends keyof LayoutSettings>(
     key: K,
     value: LayoutSettings[K]
   ) => {
@@ -77,16 +94,17 @@ export const useLayoutSettings = () => {
       ...prev,
       [key]: value
     }));
-  };
+  }, []);
 
-  const resetToDefaults = () => {
+  const resetToDefaults = useCallback(() => {
     setSettings(defaultSettings);
-  };
+  }, []);
 
-  return {
+  // Memoize the return object to prevent unnecessary re-renders
+  return useMemo(() => ({
     settings,
     updateSetting,
     resetToDefaults,
     isLoaded
-  };
+  }), [settings, updateSetting, resetToDefaults, isLoaded]);
 };
