@@ -26,6 +26,30 @@ export interface CodeSnippet {
   createdAt: Date;
 }
 
+export interface FileItem {
+  id: string;
+  name: string;
+  type: 'file' | 'folder';
+  language?: string;
+  code?: string;
+  parentId?: string;
+  path: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface LayoutPreset {
+  id: string;
+  name: string;
+  editorWidth: number;
+  sidebarWidth: number;
+  explorerWidth: number;
+  editorHeight: number;
+  consoleHeight: number;
+  showExplorer: boolean;
+  showSidebar: boolean;
+}
+
 // App State Interface
 interface AppState {
   // User state
@@ -35,6 +59,7 @@ interface AppState {
   currentCode: string;
   currentLanguage: string;
   currentProject: string | null;
+  currentFile: string | null;
   roomId: string;
   userId: string;
   
@@ -45,6 +70,32 @@ interface AppState {
   // Projects and snippets
   projects: Project[];
   savedSnippets: CodeSnippet[];
+  
+  // File management
+  files: FileItem[];
+  currentWorkspace: string;
+  
+  // Layout management
+  layoutPresets: LayoutPreset[];
+  currentLayoutPreset: string | null;
+  layoutSettings: {
+    editorWidth: number;
+    sidebarWidth: number;
+    explorerWidth: number;
+    editorHeight: number;
+    consoleHeight: number;
+    showExplorer: boolean;
+    showSidebar: boolean;
+  };
+  
+  // Editor settings
+  editorSettings: {
+    autoSave: boolean;
+    autoSaveDelay: number;
+    showMinimap: boolean;
+    enableCodeFolding: boolean;
+    findReplaceVisible: boolean;
+  };
   
   // Performance tracking
   performanceMetrics: {
@@ -71,6 +122,7 @@ interface AppActions {
   setCurrentCode: (code: string) => void;
   setCurrentLanguage: (language: string) => void;
   setCurrentProject: (project: string | null) => void;
+  setCurrentFile: (file: string | null) => void;
   setRoomId: (roomId: string) => void;
   setUserId: (userId: string) => void;
   
@@ -87,6 +139,25 @@ interface AppActions {
   addSnippet: (snippet: Omit<CodeSnippet, 'id' | 'createdAt'>) => void;
   deleteSnippet: (id: string) => void;
   loadSnippet: (id: string) => void;
+  
+  // File management actions
+  addFile: (file: Omit<FileItem, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  updateFile: (id: string, updates: Partial<FileItem>) => void;
+  deleteFile: (id: string) => void;
+  createFolder: (name: string, parentId?: string) => void;
+  renameFile: (id: string, newName: string) => void;
+  moveFile: (id: string, newParentId?: string) => void;
+  setCurrentWorkspace: (workspace: string) => void;
+  
+  // Layout management actions
+  updateLayoutSettings: (settings: Partial<AppState['layoutSettings']>) => void;
+  addLayoutPreset: (preset: Omit<LayoutPreset, 'id'>) => void;
+  deleteLayoutPreset: (id: string) => void;
+  applyLayoutPreset: (id: string) => void;
+  setCurrentLayoutPreset: (id: string | null) => void;
+  
+  // Editor settings actions
+  updateEditorSettings: (settings: Partial<AppState['editorSettings']>) => void;
   
   // Performance actions
   updatePerformanceMetrics: (metrics: Partial<AppState['performanceMetrics']>) => void;
@@ -105,12 +176,67 @@ const initialState: AppState = {
   currentCode: '',
   currentLanguage: 'python',
   currentProject: null,
+  currentFile: null,
   roomId: '',
   userId: '',
   isLoading: false,
   feedbackTabValue: 'guidance',
   projects: [],
   savedSnippets: [],
+  files: [],
+  currentWorkspace: 'default',
+  layoutPresets: [
+    {
+      id: 'default',
+      name: 'Default',
+      editorWidth: 60,
+      sidebarWidth: 25,
+      explorerWidth: 15,
+      editorHeight: 60,
+      consoleHeight: 40,
+      showExplorer: true,
+      showSidebar: true,
+    },
+    {
+      id: 'focus',
+      name: 'Focus Mode',
+      editorWidth: 85,
+      sidebarWidth: 15,
+      explorerWidth: 0,
+      editorHeight: 70,
+      consoleHeight: 30,
+      showExplorer: false,
+      showSidebar: false,
+    },
+    {
+      id: 'debug',
+      name: 'Debug Mode',
+      editorWidth: 50,
+      sidebarWidth: 30,
+      explorerWidth: 20,
+      editorHeight: 50,
+      consoleHeight: 50,
+      showExplorer: true,
+      showSidebar: true,
+    }
+  ],
+  currentLayoutPreset: 'default',
+  layoutSettings: {
+    editorWidth: 60,
+    sidebarWidth: 25,
+    explorerWidth: 15,
+    editorHeight: 60,
+    consoleHeight: 40,
+    showExplorer: true,
+    showSidebar: true,
+  },
+  editorSettings: {
+    autoSave: true,
+    autoSaveDelay: 2000,
+    showMinimap: true,
+    enableCodeFolding: true,
+    findReplaceVisible: false,
+  },
   performanceMetrics: {
     loadTime: 0,
     renderTime: 0,
@@ -134,6 +260,7 @@ export const useAppStore = create<AppState & AppActions>()(
         setCurrentCode: (currentCode) => set({ currentCode }, false, 'setCurrentCode'),
         setCurrentLanguage: (currentLanguage) => set({ currentLanguage }, false, 'setCurrentLanguage'),
         setCurrentProject: (currentProject) => set({ currentProject }, false, 'setCurrentProject'),
+        setCurrentFile: (currentFile) => set({ currentFile }, false, 'setCurrentFile'),
         setRoomId: (roomId) => set({ roomId }, false, 'setRoomId'),
         setUserId: (userId) => set({ userId }, false, 'setUserId'),
         
@@ -170,7 +297,88 @@ export const useAppStore = create<AppState & AppActions>()(
           }), false, 'deleteProject');
         },
         
-        // Snippet actions
+        // File management actions
+        addFile: (fileData) => {
+          const file = {
+            ...fileData,
+            id: Date.now().toString(),
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+          set(state => ({ files: [...state.files, file] }), false, 'addFile');
+        },
+        
+        updateFile: (id, updates) => {
+          set(state => ({
+            files: state.files.map(file =>
+              file.id === id ? { ...file, ...updates, updatedAt: new Date() } : file
+            )
+          }), false, 'updateFile');
+        },
+        
+        deleteFile: (id) => {
+          set(state => ({ files: state.files.filter(file => file.id !== id) }), false, 'deleteFile');
+        },
+        
+        createFolder: (name, parentId) => {
+          const folder = {
+            id: Date.now().toString(),
+            name,
+            type: 'folder' as const,
+            parentId,
+            path: parentId ? `${parentId}/${name}` : name,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+          set(state => ({ files: [...state.files, folder] }), false, 'createFolder');
+        },
+        
+        renameFile: (id, newName) => {
+          set(state => ({
+            files: state.files.map(file =>
+              file.id === id ? { ...file, name: newName, updatedAt: new Date() } : file
+            )
+          }), false, 'renameFile');
+        },
+        
+        moveFile: (id, newParentId) => {
+          set(state => ({
+            files: state.files.map(file =>
+              file.id === id ? { ...file, parentId: newParentId, updatedAt: new Date() } : file
+            )
+          }), false, 'moveFile');
+        },
+        
+        setCurrentWorkspace: (workspace) => set({ currentWorkspace: workspace }, false, 'setCurrentWorkspace'),
+        
+        // Layout management actions
+        updateLayoutSettings: (settings) => {
+          set(state => ({ layoutSettings: { ...state.layoutSettings, ...settings } }), false, 'updateLayoutSettings');
+        },
+        
+        addLayoutPreset: (presetData) => {
+          const preset = { ...presetData, id: Date.now().toString() };
+          set(state => ({ layoutPresets: [...state.layoutPresets, preset] }), false, 'addLayoutPreset');
+        },
+        
+        deleteLayoutPreset: (id) => {
+          set(state => ({ layoutPresets: state.layoutPresets.filter(p => p.id !== id) }), false, 'deleteLayoutPreset');
+        },
+        
+        applyLayoutPreset: (id) => {
+          const state = get();
+          const preset = state.layoutPresets.find(p => p.id === id);
+          if (preset) {
+            set({ layoutSettings: { ...preset } }, false, 'applyLayoutPreset');
+          }
+        },
+        
+        setCurrentLayoutPreset: (id) => set({ currentLayoutPreset: id }, false, 'setCurrentLayoutPreset'),
+        
+        // Editor settings actions
+        updateEditorSettings: (settings) => {
+          set(state => ({ editorSettings: { ...state.editorSettings, ...settings } }), false, 'updateEditorSettings');
+        },
         addSnippet: (snippetData) => {
           const snippet: CodeSnippet = {
             ...snippetData,

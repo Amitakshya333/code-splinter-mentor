@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { Header } from "@/components/Header";
-import { LazyCodeEditor } from "@/components/LazyCodeEditor";
+import { AdvancedCodeEditor } from "@/components/AdvancedCodeEditor";
 import { EnhancedOutputConsole } from "@/components/EnhancedOutputConsole";
+import { FileExplorer } from "@/components/FileExplorer";
+import { LayoutManager } from "@/components/LayoutManager";
 import { ProjectGuidance } from "@/components/ProjectGuidance";
 import { AIChatMentor } from "@/components/AIChatMentor";
 import { CollaborationPanel } from "@/components/CollaborationPanel";
@@ -9,11 +11,10 @@ import { PerformancePanel } from "@/components/PerformancePanel";
 import { GitPanel } from "@/components/GitPanel";
 import { EducationalHub } from "@/components/EducationalHub";
 import { FeedbackSection } from "@/components/FeedbackSection";
-import { LayoutSettings } from "@/components/LayoutSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useProgressiveLoading } from "@/hooks/useProgressiveLoading";
 import { useCodeCache } from "@/hooks/useCodeCache";
-import { useLayoutSettings } from "@/hooks/useLayoutSettings";
 import { useResponsive } from "@/hooks/useResponsive";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
@@ -51,6 +52,7 @@ const Index = () => {
     roomId,
     userId,
     feedbackTabValue,
+    layoutSettings,
     setCurrentCode,
     setCurrentLanguage,
     setCurrentProject,
@@ -63,7 +65,6 @@ const Index = () => {
   
   const { isLoading, simulateLoading, overallProgress } = useProgressiveLoading();
   const { saveToCache } = useCodeCache();
-  const { settings, isLoaded: layoutLoaded } = useLayoutSettings();
   const { isMobile, isDesktop } = useResponsive();
 
   // Initialize room ID from URL params or generate new one
@@ -164,29 +165,8 @@ const Index = () => {
     setCurrentProject(project);
   }, [setCurrentProject]);
 
-  // Memoize layout calculations
-  const layoutStyles = useMemo(() => ({
-    mainContent: {
-      width: settings.sidebarVisible && !isMobile ? `${settings.mainContentWidth}%` : '100%',
-      flex: isDesktop ? '0 0 auto' : '1 1 auto'
-    },
-    codeEditor: {
-      height: isDesktop ? `${settings.codeEditorHeight}%` : '50%',
-      maxHeight: isDesktop ? `${settings.codeEditorHeight}%` : '50%'
-    },
-    console: {
-      height: isDesktop ? `${settings.consoleHeight}%` : '50%',
-      maxHeight: isDesktop ? `${settings.consoleHeight}%` : '50%'
-    },
-    sidebar: {
-      width: isDesktop ? `${settings.sidebarWidth}%` : '100%',
-      height: isMobile ? '40vh' : 'auto',
-      flex: isDesktop ? '0 0 auto' : '0 0 40vh'
-    }
-  }), [settings, isMobile, isDesktop]);
-
   // Show loading screen while initializing
-  if (isLoading || !layoutLoaded) {
+  if (isLoading) {
     return <LoadingScreen progress={overallProgress} />;
   }
 
@@ -194,123 +174,154 @@ const Index = () => {
     <div className="min-h-screen w-full bg-background">
       <Header currentProject={currentProject} onFeedbackClick={handleFeedbackClick} />
       
-      {/* Layout Settings Panel - Hidden on mobile, visible on desktop */}
-      <div className="fixed top-4 right-4 z-50 hidden md:block">
-        <LayoutSettings />
-      </div>
-      
-      {/* Mobile Layout Settings - Bottom sheet on mobile */}
-      <div className="fixed bottom-4 right-4 z-50 md:hidden">
-        <LayoutSettings />
-      </div>
-      
-      <div className="h-[calc(100vh-4rem)] w-full flex flex-col md:flex-row overflow-hidden">
-        {/* Main Content Area */}
-        <div 
-          className="flex flex-col p-3 md:p-6 transition-all duration-300 ease-in-out order-1 md:order-none"
-          style={layoutStyles.mainContent}
-        >
-          {/* Code Editor */}
-          <div 
-            className="transition-all duration-300 ease-in-out pr-0 md:pr-3 min-h-0 mb-3 md:mb-0"
-            style={layoutStyles.codeEditor}
-          >
-            <div className="h-full border border-border rounded-lg overflow-hidden">
-              <ErrorBoundary>
-                <LazyCodeEditor 
-                  onCodeChange={handleCodeChange} 
-                  onLanguageChange={handleLanguageChange}
-                  onRun={handleRunCode}
-                />
-              </ErrorBoundary>
-            </div>
-          </div>
-          
-          {/* Output Console */}
-          <div 
-            className="pt-0 md:pt-3 pr-0 md:pr-3 transition-all duration-300 ease-in-out min-h-0"
-            style={layoutStyles.console}
-          >
-            <div className="h-full border border-border rounded-lg overflow-hidden">
-              <ErrorBoundary>
-                <EnhancedOutputConsole 
-                  currentCode={currentCode} 
-                  currentLanguage={currentLanguage}
-                />
-              </ErrorBoundary>
-            </div>
-          </div>
-        </div>
+      <div className="h-[calc(100vh-4rem)] w-full">
+        <ResizablePanelGroup direction="horizontal" className="h-full">
+          {/* File Explorer Panel */}
+          {layoutSettings.showExplorer && (
+            <>
+              <ResizablePanel 
+                defaultSize={layoutSettings.explorerWidth} 
+                minSize={10} 
+                maxSize={40}
+                className="min-w-0"
+              >
+                <div className="h-full p-2 border-r">
+                  <ErrorBoundary>
+                    <FileExplorer />
+                  </ErrorBoundary>
+                </div>
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+            </>
+          )}
 
-        {/* Right Sidebar - Bottom on mobile, right on desktop */}
-        {settings.sidebarVisible && (
-          <div 
-            className="border-t md:border-t-0 md:border-l bg-card p-3 md:p-6 transition-all duration-300 ease-in-out overflow-hidden order-2 md:order-none"
-            style={layoutStyles.sidebar}
+          {/* Main Editor Area */}
+          <ResizablePanel 
+            defaultSize={layoutSettings.editorWidth} 
+            minSize={30}
+            className="min-w-0"
           >
-            <Tabs value={feedbackTabValue} onValueChange={setFeedbackTabValue} className="h-full w-full">
-              <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 text-xs mb-2 md:mb-0">
-                <TabsTrigger value="guidance" className="text-[10px] md:text-xs">Guide</TabsTrigger>
-                <TabsTrigger value="mentor" className="text-[10px] md:text-xs">AI</TabsTrigger>
-                <TabsTrigger value="collab" className="text-[10px] md:text-xs hidden md:inline-flex">Collab</TabsTrigger>
-                <TabsTrigger value="perf" className="text-[10px] md:text-xs hidden md:inline-flex">Perf</TabsTrigger>
-                <TabsTrigger value="git" className="text-[10px] md:text-xs hidden md:inline-flex">Git</TabsTrigger>
-                <TabsTrigger value="learn" className="text-[10px] md:text-xs">Learn</TabsTrigger>
-              </TabsList>
+            <ResizablePanelGroup direction="vertical" className="h-full">
+              {/* Code Editor */}
+              <ResizablePanel 
+                defaultSize={layoutSettings.editorHeight} 
+                minSize={30}
+                className="min-h-0"
+              >
+                <div className="h-full p-2 pb-1">
+                  <ErrorBoundary>
+                    <AdvancedCodeEditor 
+                      onCodeChange={handleCodeChange} 
+                      onLanguageChange={handleLanguageChange}
+                      onRun={handleRunCode}
+                    />
+                  </ErrorBoundary>
+                </div>
+              </ResizablePanel>
               
-              <TabsContent value="guidance" className="h-full mt-6">
-                <ErrorBoundary>
-                  <ProjectGuidance 
-                    onProjectSelect={handleProjectSelect}
-                  />
-                </ErrorBoundary>
-              </TabsContent>
+              <ResizableHandle withHandle />
               
-              <TabsContent value="mentor" className="h-full mt-6">
-                <ErrorBoundary>
-                  <AIChatMentor 
-                    currentCode={currentCode}
-                    currentProject={currentProject}
-                  />
-                </ErrorBoundary>
-              </TabsContent>
-              
-              <TabsContent value="collab" className="h-full mt-6">
-                <ErrorBoundary>
-                  <CollaborationPanel 
-                    roomId={roomId}
-                    userId={userId}
-                    onShareRoom={handleShareRoom}
-                  />
-                </ErrorBoundary>
-              </TabsContent>
-              
-              <TabsContent value="perf" className="h-full mt-6">
-                <ErrorBoundary>
-                  <PerformancePanel />
-                </ErrorBoundary>
-              </TabsContent>
-              
-              <TabsContent value="git" className="h-full mt-6">
-                <ErrorBoundary>
-                  <GitPanel />
-                </ErrorBoundary>
-              </TabsContent>
-              
-              <TabsContent value="learn" className="h-full mt-6">
-                <ErrorBoundary>
-                  <EducationalHub onCodeUpdate={handleRunCode} />
-                </ErrorBoundary>
-              </TabsContent>
-              
-              <TabsContent value="feedback" className="h-full mt-6">
-                <ErrorBoundary>
-                  <FeedbackSection />
-                </ErrorBoundary>
-              </TabsContent>
-            </Tabs>
-          </div>
-        )}
+              {/* Output Console */}
+              <ResizablePanel 
+                defaultSize={layoutSettings.consoleHeight} 
+                minSize={20}
+                className="min-h-0"
+              >
+                <div className="h-full p-2 pt-1">
+                  <ErrorBoundary>
+                    <EnhancedOutputConsole 
+                      currentCode={currentCode} 
+                      currentLanguage={currentLanguage}
+                    />
+                  </ErrorBoundary>
+                </div>
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          </ResizablePanel>
+
+          {/* Right Sidebar */}
+          {layoutSettings.showSidebar && (
+            <>
+              <ResizableHandle withHandle />
+              <ResizablePanel 
+                defaultSize={layoutSettings.sidebarWidth} 
+                minSize={15} 
+                maxSize={50}
+                className="min-w-0"
+              >
+                <div className="h-full border-l">
+                  <Tabs value={feedbackTabValue} onValueChange={setFeedbackTabValue} className="h-full flex flex-col">
+                    <div className="p-2 pb-0">
+                      <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 text-xs">
+                        <TabsTrigger value="guidance" className="text-[10px] lg:text-xs">Guide</TabsTrigger>
+                        <TabsTrigger value="mentor" className="text-[10px] lg:text-xs">AI</TabsTrigger>
+                        <TabsTrigger value="layout" className="text-[10px] lg:text-xs">Layout</TabsTrigger>
+                        <TabsTrigger value="learn" className="text-[10px] lg:text-xs">Learn</TabsTrigger>
+                      </TabsList>
+                    </div>
+                    
+                    <div className="flex-1 p-2 overflow-hidden">
+                      <TabsContent value="guidance" className="h-full mt-0">
+                        <ErrorBoundary>
+                          <ProjectGuidance onProjectSelect={handleProjectSelect} />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="mentor" className="h-full mt-0">
+                        <ErrorBoundary>
+                          <AIChatMentor 
+                            currentCode={currentCode}
+                            currentProject={currentProject}
+                          />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="layout" className="h-full mt-0">
+                        <ErrorBoundary>
+                          <LayoutManager />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="collab" className="h-full mt-0">
+                        <ErrorBoundary>
+                          <CollaborationPanel 
+                            roomId={roomId}
+                            userId={userId}
+                            onShareRoom={handleShareRoom}
+                          />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="perf" className="h-full mt-0">
+                        <ErrorBoundary>
+                          <PerformancePanel />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="git" className="h-full mt-0">
+                        <ErrorBoundary>
+                          <GitPanel />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="learn" className="h-full mt-0">
+                        <ErrorBoundary>
+                          <EducationalHub onCodeUpdate={handleRunCode} />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="feedback" className="h-full mt-0">
+                        <ErrorBoundary>
+                          <FeedbackSection />
+                        </ErrorBoundary>
+                      </TabsContent>
+                    </div>
+                  </Tabs>
+                </div>
+              </ResizablePanel>
+            </>
+          )}
+        </ResizablePanelGroup>
       </div>
     </div>
   );
