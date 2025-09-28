@@ -430,7 +430,7 @@ export const AdvancedCodeEditor = memo<AdvancedCodeEditorProps>(({
             value={currentCode}
             onChange={handleCodeChange}
             onMount={handleEditorDidMount}
-            theme={theme === 'dark' || theme === 'amoled' ? 'vs-dark' : 'vs'}
+            theme={theme === 'dark' ? 'vs-dark' : 'vs'}
             options={{
               fontSize: 14,
               fontFamily: 'Fira Code, Consolas, Monaco, monospace',
