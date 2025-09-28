@@ -1,15 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { Code, Sparkles, Github, ExternalLink, MessageSquare } from "lucide-react";
+import { Code, Sparkles, Github, ExternalLink, MessageSquare, Settings } from "lucide-react";
 import { toast } from "sonner";
 
 interface HeaderProps {
   currentProject?: string | null;
   onFeedbackClick?: () => void;
+  onSettingsClick?: () => void;
 }
 
-export function Header({ currentProject, onFeedbackClick }: HeaderProps) {
+export function Header({ currentProject, onFeedbackClick, onSettingsClick }: HeaderProps) {
   const handleGitHubClick = () => {
     const currentUrl = window.location.href;
     const projectName = currentProject || "CodeSplinter-Project";
@@ -83,6 +84,9 @@ export function Header({ currentProject, onFeedbackClick }: HeaderProps) {
           <Button variant="outline" size="sm" onClick={onFeedbackClick}>
             <MessageSquare className="h-4 w-4 mr-1" />
             Feedback
+          </Button>
+          <Button variant="ghost" size="icon" onClick={onSettingsClick}>
+            <Settings className="h-4 w-4" />
           </Button>
           <ThemeToggle />
         </div>

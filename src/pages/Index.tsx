@@ -170,9 +170,17 @@ const Index = () => {
     return <LoadingScreen progress={overallProgress} />;
   }
 
+  const handleSettingsClick = useCallback(() => {
+    setFeedbackTabValue("layout");
+  }, [setFeedbackTabValue]);
+
   return (
     <div className="min-h-screen w-full bg-background">
-      <Header currentProject={currentProject} onFeedbackClick={handleFeedbackClick} />
+      <Header 
+        currentProject={currentProject} 
+        onFeedbackClick={handleFeedbackClick}
+        onSettingsClick={handleSettingsClick}
+      />
       
       <div className="h-[calc(100vh-4rem)] w-full">
         <ResizablePanelGroup direction="horizontal" className="h-full">
@@ -252,10 +260,9 @@ const Index = () => {
                 <div className="h-full border-l">
                   <Tabs value={feedbackTabValue} onValueChange={setFeedbackTabValue} className="h-full flex flex-col">
                     <div className="p-2 pb-0">
-                      <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 text-xs">
+                      <TabsList className="grid w-full grid-cols-3 text-xs">
                         <TabsTrigger value="guidance" className="text-[10px] lg:text-xs">Guide</TabsTrigger>
                         <TabsTrigger value="mentor" className="text-[10px] lg:text-xs">AI</TabsTrigger>
-                        <TabsTrigger value="layout" className="text-[10px] lg:text-xs">Layout</TabsTrigger>
                         <TabsTrigger value="learn" className="text-[10px] lg:text-xs">Learn</TabsTrigger>
                       </TabsList>
                     </div>
