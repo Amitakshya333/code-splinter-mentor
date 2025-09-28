@@ -304,11 +304,15 @@ const Index = () => {
                         </ErrorBoundary>
                       </TabsContent>
                       
-                      <TabsContent value="learn" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <EducationalHub onCodeUpdate={handleRunCode} />
-                        </ErrorBoundary>
-                      </TabsContent>
+                       <TabsContent value="learn" className="h-full mt-0">
+                         <ErrorBoundary>
+                           <EducationalHub 
+                             onCodeUpdate={handleRunCode}
+                             currentCode={currentCode}
+                             currentLanguage={currentLanguage}
+                           />
+                         </ErrorBoundary>
+                       </TabsContent>
                       
                       <TabsContent value="feedback" className="h-full mt-0">
                         <ErrorBoundary>

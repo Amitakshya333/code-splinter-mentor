@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TutorialMode } from './TutorialMode';
 import { ChallengeMode } from './ChallengeMode';
+import { ProgressiveTutorialSystem } from './ProgressiveTutorialSystem';
+import { RealTimeCodeAnalysis } from './RealTimeCodeAnalysis';
+import { CommunityHub } from './CommunityHub';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -17,9 +20,15 @@ import {
 
 interface EducationalHubProps {
   onCodeUpdate?: (code: string, language: string) => void;
+  currentCode?: string;
+  currentLanguage?: string;
 }
 
-export const EducationalHub: React.FC<EducationalHubProps> = ({ onCodeUpdate }) => {
+export const EducationalHub: React.FC<EducationalHubProps> = ({ 
+  onCodeUpdate, 
+  currentCode = '', 
+  currentLanguage = 'javascript' 
+}) => {
   const [userStats] = useState({
     tutorialsCompleted: 3,
     challengesSolved: 8,
@@ -39,15 +48,20 @@ export const EducationalHub: React.FC<EducationalHubProps> = ({ onCodeUpdate }) 
 
   return (
     <div className="h-full">
-      <Tabs defaultValue="overview" className="h-full">
-        <TabsList className="grid w-full grid-cols-4 text-xs mb-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="tutorials">Tutorials</TabsTrigger>
-          <TabsTrigger value="challenges">Challenges</TabsTrigger>
-          <TabsTrigger value="progress">Progress</TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="overview" className="h-full flex flex-col">
+        <div className="p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <TabsList className="grid w-full grid-cols-7">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="tutorials">Tutorials</TabsTrigger>
+            <TabsTrigger value="progressive">Learning Paths</TabsTrigger>
+            <TabsTrigger value="analysis">Code Analysis</TabsTrigger>
+            <TabsTrigger value="challenges">Challenges</TabsTrigger>
+            <TabsTrigger value="community">Community</TabsTrigger>
+            <TabsTrigger value="progress">Progress</TabsTrigger>
+          </TabsList>
+        </div>
 
-        <TabsContent value="overview" className="h-[calc(100%-3rem)] overflow-auto">
+        <TabsContent value="overview" className="flex-1 overflow-auto p-4">
           <div className="space-y-4">
             {/* Quick Stats */}
             <div className="grid grid-cols-2 gap-3">
@@ -172,15 +186,33 @@ export const EducationalHub: React.FC<EducationalHubProps> = ({ onCodeUpdate }) 
           </div>
         </TabsContent>
 
-        <TabsContent value="tutorials" className="h-[calc(100%-3rem)]">
+        <TabsContent value="tutorials" className="flex-1 overflow-hidden">
           <TutorialMode onCodeUpdate={onCodeUpdate} />
         </TabsContent>
 
-        <TabsContent value="challenges" className="h-[calc(100%-3rem)]">
+        <TabsContent value="progressive" className="flex-1 overflow-hidden">
+          <ProgressiveTutorialSystem onCodeUpdate={onCodeUpdate} />
+        </TabsContent>
+
+        <TabsContent value="analysis" className="flex-1 overflow-hidden p-4">
+          <RealTimeCodeAnalysis 
+            code={currentCode} 
+            language={currentLanguage}
+            onApplyFix={(line, fix) => {
+              console.log(`Apply fix at line ${line}: ${fix}`);
+            }}
+          />
+        </TabsContent>
+
+        <TabsContent value="challenges" className="flex-1 overflow-hidden">
           <ChallengeMode onCodeUpdate={onCodeUpdate} />
         </TabsContent>
 
-        <TabsContent value="progress" className="h-[calc(100%-3rem)] overflow-auto">
+        <TabsContent value="community" className="flex-1 overflow-hidden">
+          <CommunityHub onCodeUpdate={onCodeUpdate} />
+        </TabsContent>
+
+        <TabsContent value="progress" className="flex-1 overflow-auto p-4">
           <div className="space-y-4">
             <Card>
               <CardHeader className="pb-3">

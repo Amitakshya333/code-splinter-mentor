@@ -111,6 +111,17 @@ interface AppState {
     timestamp: Date;
     context?: string;
   }>;
+  
+  // Learning system
+  learningProgress: Record<string, number>;
+  currentLearningPath: any | null;
+  userProfile: any | null;
+  sharedCodes: any[];
+  communityStats: {
+    totalUsers: number;
+    activeChallenges: number;
+    codeShares: number;
+  };
 }
 
 // Actions Interface  
@@ -165,6 +176,13 @@ interface AppActions {
   // Error actions
   addError: (error: string, context?: string) => void;
   clearErrors: () => void;
+  
+  // Learning system actions
+  setLearningProgress: (progress: Record<string, number>) => void;
+  setCurrentLearningPath: (path: any) => void;
+  setUserProfile: (profile: any) => void;
+  addSharedCode: (code: any) => void;
+  updateCommunityStats: (stats: any) => void;
   
   // Utility actions
   reset: () => void;
@@ -242,7 +260,18 @@ const initialState: AppState = {
     renderTime: 0,
     memoryUsage: 0
   },
-  errors: []
+  errors: [],
+  
+  // Learning system initial state
+  learningProgress: {},
+  currentLearningPath: null,
+  userProfile: null,
+  sharedCodes: [],
+  communityStats: {
+    totalUsers: 1234,
+    activeChallenges: 12,
+    codeShares: 567
+  }
 };
 
 // Create store
@@ -428,6 +457,15 @@ export const useAppStore = create<AppState & AppActions>()(
         },
         
         clearErrors: () => set({ errors: [] }, false, 'clearErrors'),
+        
+        // Learning system actions
+        setLearningProgress: (progress) => set({ learningProgress: progress }, false, 'setLearningProgress'),
+        setCurrentLearningPath: (path) => set({ currentLearningPath: path }, false, 'setCurrentLearningPath'),
+        setUserProfile: (profile) => set({ userProfile: profile }, false, 'setUserProfile'),
+        addSharedCode: (code) => set(state => ({ 
+          sharedCodes: [...state.sharedCodes, code] 
+        }), false, 'addSharedCode'),
+        updateCommunityStats: (stats) => set({ communityStats: stats }, false, 'updateCommunityStats'),
         
         // Utility actions
         reset: () => set(initialState, false, 'reset')
