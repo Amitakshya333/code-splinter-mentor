@@ -165,14 +165,14 @@ const Index = () => {
     setCurrentProject(project);
   }, [setCurrentProject]);
 
+  const handleSettingsClick = useCallback(() => {
+    setFeedbackTabValue("layout");
+  }, [setFeedbackTabValue]);
+
   // Show loading screen while initializing
   if (isLoading) {
     return <LoadingScreen progress={overallProgress} />;
   }
-
-  const handleSettingsClick = useCallback(() => {
-    setFeedbackTabValue("layout");
-  }, [setFeedbackTabValue]);
 
   return (
     <div className="min-h-screen w-full bg-background">
