@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { Header } from "@/components/Header";
-import { AdvancedCodeEditor } from "@/components/AdvancedCodeEditor";
+import { EnhancedCodeEditor } from "@/components/EnhancedCodeEditor";
 import { EnhancedOutputConsole } from "@/components/EnhancedOutputConsole";
 import { FileExplorer } from "@/components/FileExplorer";
 import { LayoutManager } from "@/components/LayoutManager";
@@ -218,7 +218,7 @@ const Index = () => {
               >
                 <div className="h-full p-2 pb-1">
                   <ErrorBoundary>
-                    <AdvancedCodeEditor 
+                    <EnhancedCodeEditor 
                       onCodeChange={handleCodeChange} 
                       onLanguageChange={handleLanguageChange}
                       onRun={handleRunCode}
