@@ -88,6 +88,10 @@ interface AppState {
     showSidebar: boolean;
   };
   
+  // Multi-tab editor
+  openTabs: string[];
+  activeTabId: string | null;
+  
   // Editor settings
   editorSettings: {
     autoSave: boolean;
@@ -95,6 +99,8 @@ interface AppState {
     showMinimap: boolean;
     enableCodeFolding: boolean;
     findReplaceVisible: boolean;
+    enableIntelliSense: boolean;
+    enableDebugger: boolean;
   };
   
   // Performance tracking
@@ -203,6 +209,8 @@ const initialState: AppState = {
   savedSnippets: [],
   files: [],
   currentWorkspace: 'default',
+  openTabs: [],
+  activeTabId: null,
   layoutPresets: [
     {
       id: 'default',
@@ -254,6 +262,8 @@ const initialState: AppState = {
     showMinimap: true,
     enableCodeFolding: true,
     findReplaceVisible: false,
+    enableIntelliSense: true,
+    enableDebugger: true,
   },
   performanceMetrics: {
     loadTime: 0,
