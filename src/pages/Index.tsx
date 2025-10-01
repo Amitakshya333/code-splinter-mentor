@@ -20,6 +20,7 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAppStore } from "@/store/useAppStore";
+import { Terminal } from "@/components/Terminal";
 
 // Memoized loading component
 const LoadingScreen = memo(({ progress }: { progress: number }) => (
@@ -229,19 +230,32 @@ const Index = () => {
               
               <ResizableHandle withHandle />
               
-              {/* Output Console */}
+              {/* Output Console & Terminal */}
               <ResizablePanel 
                 defaultSize={layoutSettings.consoleHeight} 
                 minSize={20}
                 className="min-h-0"
               >
                 <div className="h-full p-2 pt-1">
-                  <ErrorBoundary>
-                    <EnhancedOutputConsole 
-                      currentCode={currentCode} 
-                      currentLanguage={currentLanguage}
-                    />
-                  </ErrorBoundary>
+                  <Tabs defaultValue="output" className="h-full flex flex-col">
+                    <TabsList className="w-full justify-start bg-muted/50">
+                      <TabsTrigger value="output">Output</TabsTrigger>
+                      <TabsTrigger value="terminal">Terminal</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="output" className="flex-1 mt-2 overflow-hidden">
+                      <ErrorBoundary>
+                        <EnhancedOutputConsole 
+                          currentCode={currentCode} 
+                          currentLanguage={currentLanguage}
+                        />
+                      </ErrorBoundary>
+                    </TabsContent>
+                    <TabsContent value="terminal" className="flex-1 mt-0 overflow-hidden">
+                      <ErrorBoundary>
+                        <Terminal />
+                      </ErrorBoundary>
+                    </TabsContent>
+                  </Tabs>
                 </div>
               </ResizablePanel>
             </ResizablePanelGroup>
