@@ -11,6 +11,8 @@ import { PerformancePanel } from "@/components/PerformancePanel";
 import { GitPanel } from "@/components/GitPanel";
 import { EducationalHub } from "@/components/EducationalHub";
 import { FeedbackSection } from "@/components/FeedbackSection";
+import { DeveloperTools } from "@/components/DeveloperTools";
+import { SettingsPanel } from "@/components/SettingsPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useProgressiveLoading } from "@/hooks/useProgressiveLoading";
@@ -274,10 +276,12 @@ const Index = () => {
                 <div className="h-full border-l">
                   <Tabs value={feedbackTabValue} onValueChange={setFeedbackTabValue} className="h-full flex flex-col">
                     <div className="p-2 pb-0">
-                      <TabsList className="grid w-full grid-cols-3 text-xs">
+                      <TabsList className="grid w-full grid-cols-5 text-xs">
                         <TabsTrigger value="guidance" className="text-[10px] lg:text-xs">Guide</TabsTrigger>
                         <TabsTrigger value="mentor" className="text-[10px] lg:text-xs">AI</TabsTrigger>
                         <TabsTrigger value="learn" className="text-[10px] lg:text-xs">Learn</TabsTrigger>
+                        <TabsTrigger value="devtools" className="text-[10px] lg:text-xs">Tools</TabsTrigger>
+                        <TabsTrigger value="settings" className="text-[10px] lg:text-xs">Settings</TabsTrigger>
                       </TabsList>
                     </div>
                     
@@ -335,9 +339,21 @@ const Index = () => {
                          </ErrorBoundary>
                        </TabsContent>
                       
-                      <TabsContent value="feedback" className="h-full mt-0">
+                       <TabsContent value="feedback" className="h-full mt-0">
                         <ErrorBoundary>
                           <FeedbackSection />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="devtools" className="h-full mt-0">
+                        <ErrorBoundary>
+                          <DeveloperTools />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="settings" className="h-full mt-0">
+                        <ErrorBoundary>
+                          <SettingsPanel />
                         </ErrorBoundary>
                       </TabsContent>
                     </div>
