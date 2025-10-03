@@ -15,6 +15,7 @@ import { DeveloperTools } from "@/components/DeveloperTools";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { AdvancedFeatures } from "@/components/AdvancedFeatures";
 import { IntegrationDeployment } from "@/components/IntegrationDeployment";
+import { LearningFeatures } from "@/components/LearningFeatures";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useProgressiveLoading } from "@/hooks/useProgressiveLoading";
@@ -278,10 +279,11 @@ const Index = () => {
                 <div className="h-full border-l">
                   <Tabs value={feedbackTabValue} onValueChange={setFeedbackTabValue} className="h-full flex flex-col">
                     <div className="p-2 pb-0">
-                      <TabsList className="grid w-full grid-cols-7 text-xs">
+                      <TabsList className="grid w-full grid-cols-8 text-xs">
                         <TabsTrigger value="guidance" className="text-[10px] lg:text-xs">Guide</TabsTrigger>
                         <TabsTrigger value="mentor" className="text-[10px] lg:text-xs">AI</TabsTrigger>
                         <TabsTrigger value="learn" className="text-[10px] lg:text-xs">Learn</TabsTrigger>
+                        <TabsTrigger value="mentorship" className="text-[10px] lg:text-xs">Mentor</TabsTrigger>
                         <TabsTrigger value="devtools" className="text-[10px] lg:text-xs">Tools</TabsTrigger>
                         <TabsTrigger value="advanced" className="text-[10px] lg:text-xs">Advanced</TabsTrigger>
                         <TabsTrigger value="deploy" className="text-[10px] lg:text-xs">Deploy</TabsTrigger>
@@ -340,6 +342,12 @@ const Index = () => {
                              currentCode={currentCode}
                              currentLanguage={currentLanguage}
                            />
+                         </ErrorBoundary>
+                       </TabsContent>
+                       
+                       <TabsContent value="mentorship" className="h-full mt-0">
+                         <ErrorBoundary>
+                           <LearningFeatures onCodeUpdate={handleRunCode} />
                          </ErrorBoundary>
                        </TabsContent>
                       
