@@ -18,36 +18,11 @@ import { IntegrationDeployment } from "@/components/IntegrationDeployment";
 import { LearningFeatures } from "@/components/LearningFeatures";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { useProgressiveLoading } from "@/hooks/useProgressiveLoading";
 import { useCodeCache } from "@/hooks/useCodeCache";
 import { useResponsive } from "@/hooks/useResponsive";
-import { Progress } from "@/components/ui/progress";
-import { Card, CardContent } from "@/components/ui/card";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAppStore } from "@/store/useAppStore";
 import { Terminal } from "@/components/Terminal";
-
-// Memoized loading component
-const LoadingScreen = memo(({ progress }: { progress: number }) => (
-  <div className="min-h-screen bg-background flex items-center justify-center p-4">
-    <Card className="w-full max-w-md">
-      <CardContent className="p-6 space-y-4">
-        <div className="text-center">
-          <h2 className="text-lg font-semibold mb-2">Loading Code Editor</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            Initializing components and features...
-          </p>
-        </div>
-        <Progress value={progress} className="h-2" />
-        <div className="text-center text-xs text-muted-foreground">
-          {Math.round(progress)}% complete
-        </div>
-      </CardContent>
-    </Card>
-  </div>
-));
-
-LoadingScreen.displayName = 'LoadingScreen';
 
 const Index = () => {
   // Use Zustand store for global state
@@ -69,7 +44,6 @@ const Index = () => {
     addError
   } = useAppStore();
   
-  const { isLoading, simulateLoading, overallProgress } = useProgressiveLoading();
   const { saveToCache } = useCodeCache();
   const { isMobile, isDesktop } = useResponsive();
 
@@ -108,16 +82,6 @@ const Index = () => {
     return () => observer.disconnect();
   }, [setRoomId, setUserId, userId, updatePerformanceMetrics]);
 
-  // Start progressive loading
-  useEffect(() => {
-    const loadingTimer = setTimeout(() => {
-      simulateLoading().catch((error) => {
-        addError('Failed to complete loading sequence', 'progressive-loading');
-      });
-    }, 100);
-
-    return () => clearTimeout(loadingTimer);
-  }, [simulateLoading, addError]);
 
   // Memoized handlers to prevent unnecessary re-renders
   const handleRunCode = useCallback((code: string, language: string) => {
@@ -175,10 +139,6 @@ const Index = () => {
     setFeedbackTabValue("layout");
   }, [setFeedbackTabValue]);
 
-  // Show loading screen while initializing
-  if (isLoading) {
-    return <LoadingScreen progress={overallProgress} />;
-  }
 
   return (
     <div className="min-h-screen w-full bg-background">
