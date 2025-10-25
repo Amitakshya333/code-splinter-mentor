@@ -12,8 +12,6 @@ import {
   CheckCircle, 
   Info,
   Copy,
-  Download,
-  Upload,
   Trash2,
   Wand2,
   Loader2,
@@ -205,45 +203,6 @@ export const CodeEditor = ({ onCodeChange, onLanguageChange }: CodeEditorProps) 
             }}
           >
             <Copy className="w-4 h-4" />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => {
-              const blob = new Blob([code], { type: 'text/plain' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `code${getCurrentLanguage()?.ext || '.txt'}`;
-              a.click();
-              URL.revokeObjectURL(url);
-            }}
-          >
-            <Download className="w-4 h-4" />
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => {
-              const input = document.createElement('input');
-              input.type = 'file';
-              input.accept = '.txt,.js,.py,.html,.css,.java,.c,.ts,.jsx';
-              input.onchange = (e) => {
-                const file = (e.target as HTMLInputElement).files?.[0];
-                if (file) {
-                  const reader = new FileReader();
-                  reader.onload = (e) => {
-                    const content = e.target?.result as string;
-                    setCode(content);
-                    onCodeChange?.(content);
-                  };
-                  reader.readAsText(file);
-                }
-              };
-              input.click();
-            }}
-          >
-            <Upload className="w-4 h-4" />
           </Button>
           <Button variant="ghost" size="sm" onClick={() => { setCode(""); onCodeChange?.(""); }}>
             <Trash2 className="w-4 h-4" />
