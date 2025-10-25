@@ -172,7 +172,7 @@ const Index = () => {
   }, [setCurrentProject]);
 
   const handleSettingsClick = useCallback(() => {
-    setFeedbackTabValue("layout");
+    setFeedbackTabValue("settings");
   }, [setFeedbackTabValue]);
 
   // Show loading screen while initializing
@@ -307,12 +307,6 @@ const Index = () => {
                         </ErrorBoundary>
                       </TabsContent>
                       
-                      <TabsContent value="layout" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <LayoutManager />
-                        </ErrorBoundary>
-                      </TabsContent>
-                      
                       <TabsContent value="collab" className="h-full mt-0">
                         <ErrorBoundary>
                           <CollaborationPanel 
@@ -332,28 +326,6 @@ const Index = () => {
                       <TabsContent value="git" className="h-full mt-0">
                         <ErrorBoundary>
                           <GitPanel />
-                        </ErrorBoundary>
-                      </TabsContent>
-                      
-                       <TabsContent value="learn" className="h-full mt-0">
-                         <ErrorBoundary>
-                           <EducationalHub 
-                             onCodeUpdate={handleRunCode}
-                             currentCode={currentCode}
-                             currentLanguage={currentLanguage}
-                           />
-                         </ErrorBoundary>
-                       </TabsContent>
-                       
-                       <TabsContent value="mentorship" className="h-full mt-0">
-                         <ErrorBoundary>
-                           <LearningFeatures onCodeUpdate={handleRunCode} />
-                         </ErrorBoundary>
-                       </TabsContent>
-                      
-                       <TabsContent value="feedback" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <FeedbackSection />
                         </ErrorBoundary>
                       </TabsContent>
                       
@@ -378,6 +350,18 @@ const Index = () => {
                       <TabsContent value="settings" className="h-full mt-0">
                         <ErrorBoundary>
                           <SettingsPanel />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="feedback" className="h-full mt-0">
+                        <ErrorBoundary>
+                          <FeedbackSection />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="layout" className="h-full mt-0">
+                        <ErrorBoundary>
+                          <LayoutManager />
                         </ErrorBoundary>
                       </TabsContent>
                     </div>
