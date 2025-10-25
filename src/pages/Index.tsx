@@ -18,11 +18,36 @@ import { IntegrationDeployment } from "@/components/IntegrationDeployment";
 import { LearningFeatures } from "@/components/LearningFeatures";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { useProgressiveLoading } from "@/hooks/useProgressiveLoading";
 import { useCodeCache } from "@/hooks/useCodeCache";
 import { useResponsive } from "@/hooks/useResponsive";
+import { Progress } from "@/components/ui/progress";
+import { Card, CardContent } from "@/components/ui/card";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAppStore } from "@/store/useAppStore";
 import { Terminal } from "@/components/Terminal";
+
+// Memoized loading component
+const LoadingScreen = memo(({ progress }: { progress: number }) => (
+  <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <Card className="w-full max-w-md">
+      <CardContent className="p-6 space-y-4">
+        <div className="text-center">
+          <h2 className="text-lg font-semibold mb-2">Loading Code Editor</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Initializing components and features...
+          </p>
+        </div>
+        <Progress value={progress} className="h-2" />
+        <div className="text-center text-xs text-muted-foreground">
+          {Math.round(progress)}% complete
+        </div>
+      </CardContent>
+    </Card>
+  </div>
+));
+
+LoadingScreen.displayName = 'LoadingScreen';
 
 const Index = () => {
   // Use Zustand store for global state
@@ -44,6 +69,7 @@ const Index = () => {
     addError
   } = useAppStore();
   
+  const { isLoading, simulateLoading, overallProgress } = useProgressiveLoading();
   const { saveToCache } = useCodeCache();
   const { isMobile, isDesktop } = useResponsive();
 
@@ -82,6 +108,16 @@ const Index = () => {
     return () => observer.disconnect();
   }, [setRoomId, setUserId, userId, updatePerformanceMetrics]);
 
+  // Start progressive loading
+  useEffect(() => {
+    const loadingTimer = setTimeout(() => {
+      simulateLoading().catch((error) => {
+        addError('Failed to complete loading sequence', 'progressive-loading');
+      });
+    }, 100);
+
+    return () => clearTimeout(loadingTimer);
+  }, [simulateLoading, addError]);
 
   // Memoized handlers to prevent unnecessary re-renders
   const handleRunCode = useCallback((code: string, language: string) => {
@@ -136,9 +172,13 @@ const Index = () => {
   }, [setCurrentProject]);
 
   const handleSettingsClick = useCallback(() => {
-    setFeedbackTabValue("settings");
+    setFeedbackTabValue("layout");
   }, [setFeedbackTabValue]);
 
+  // Show loading screen while initializing
+  if (isLoading) {
+    return <LoadingScreen progress={overallProgress} />;
+  }
 
   return (
     <div className="min-h-screen w-full bg-background">
@@ -154,7 +194,6 @@ const Index = () => {
           {layoutSettings.showExplorer && (
             <>
               <ResizablePanel 
-                id="file-explorer"
                 defaultSize={layoutSettings.explorerWidth} 
                 minSize={10} 
                 maxSize={40}
@@ -172,7 +211,6 @@ const Index = () => {
 
           {/* Main Editor Area */}
           <ResizablePanel 
-            id="editor-main"
             defaultSize={layoutSettings.editorWidth} 
             minSize={30}
             className="min-w-0"
@@ -180,7 +218,6 @@ const Index = () => {
             <ResizablePanelGroup direction="vertical" className="h-full">
               {/* Code Editor */}
               <ResizablePanel 
-                id="code-editor"
                 defaultSize={layoutSettings.editorHeight} 
                 minSize={30}
                 className="min-h-0"
@@ -200,7 +237,6 @@ const Index = () => {
               
               {/* Output Console & Terminal */}
               <ResizablePanel 
-                id="console-terminal"
                 defaultSize={layoutSettings.consoleHeight} 
                 minSize={20}
                 className="min-h-0"
@@ -235,7 +271,6 @@ const Index = () => {
             <>
               <ResizableHandle withHandle />
               <ResizablePanel 
-                id="right-sidebar"
                 defaultSize={layoutSettings.sidebarWidth} 
                 minSize={15} 
                 maxSize={50}
@@ -244,11 +279,15 @@ const Index = () => {
                 <div className="h-full border-l">
                   <Tabs value={feedbackTabValue} onValueChange={setFeedbackTabValue} className="h-full flex flex-col">
                     <div className="p-2 pb-0">
-                      <TabsList className="grid w-full grid-cols-4 text-xs">
+                      <TabsList className="grid w-full grid-cols-8 text-xs">
                         <TabsTrigger value="guidance" className="text-[10px] lg:text-xs">Guide</TabsTrigger>
                         <TabsTrigger value="mentor" className="text-[10px] lg:text-xs">AI</TabsTrigger>
                         <TabsTrigger value="learn" className="text-[10px] lg:text-xs">Learn</TabsTrigger>
+                        <TabsTrigger value="mentorship" className="text-[10px] lg:text-xs">Mentor</TabsTrigger>
                         <TabsTrigger value="devtools" className="text-[10px] lg:text-xs">Tools</TabsTrigger>
+                        <TabsTrigger value="advanced" className="text-[10px] lg:text-xs">Advanced</TabsTrigger>
+                        <TabsTrigger value="deploy" className="text-[10px] lg:text-xs">Deploy</TabsTrigger>
+                        <TabsTrigger value="settings" className="text-[10px] lg:text-xs">Settings</TabsTrigger>
                       </TabsList>
                     </div>
                     
@@ -268,13 +307,53 @@ const Index = () => {
                         </ErrorBoundary>
                       </TabsContent>
                       
-                      <TabsContent value="learn" className="h-full mt-0">
+                      <TabsContent value="layout" className="h-full mt-0">
                         <ErrorBoundary>
-                          <EducationalHub 
-                            onCodeUpdate={handleRunCode}
-                            currentCode={currentCode}
-                            currentLanguage={currentLanguage}
+                          <LayoutManager />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="collab" className="h-full mt-0">
+                        <ErrorBoundary>
+                          <CollaborationPanel 
+                            roomId={roomId}
+                            userId={userId}
+                            onShareRoom={handleShareRoom}
                           />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="perf" className="h-full mt-0">
+                        <ErrorBoundary>
+                          <PerformancePanel />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="git" className="h-full mt-0">
+                        <ErrorBoundary>
+                          <GitPanel />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                       <TabsContent value="learn" className="h-full mt-0">
+                         <ErrorBoundary>
+                           <EducationalHub 
+                             onCodeUpdate={handleRunCode}
+                             currentCode={currentCode}
+                             currentLanguage={currentLanguage}
+                           />
+                         </ErrorBoundary>
+                       </TabsContent>
+                       
+                       <TabsContent value="mentorship" className="h-full mt-0">
+                         <ErrorBoundary>
+                           <LearningFeatures onCodeUpdate={handleRunCode} />
+                         </ErrorBoundary>
+                       </TabsContent>
+                      
+                       <TabsContent value="feedback" className="h-full mt-0">
+                        <ErrorBoundary>
+                          <FeedbackSection />
                         </ErrorBoundary>
                       </TabsContent>
                       
@@ -284,15 +363,21 @@ const Index = () => {
                         </ErrorBoundary>
                       </TabsContent>
                       
-                      <TabsContent value="settings" className="h-full mt-0">
+                      <TabsContent value="advanced" className="h-full mt-0">
                         <ErrorBoundary>
-                          <SettingsPanel />
+                          <AdvancedFeatures />
                         </ErrorBoundary>
                       </TabsContent>
                       
-                      <TabsContent value="feedback" className="h-full mt-0">
+                      <TabsContent value="deploy" className="h-full mt-0">
                         <ErrorBoundary>
-                          <FeedbackSection />
+                          <IntegrationDeployment />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="settings" className="h-full mt-0">
+                        <ErrorBoundary>
+                          <SettingsPanel />
                         </ErrorBoundary>
                       </TabsContent>
                     </div>
