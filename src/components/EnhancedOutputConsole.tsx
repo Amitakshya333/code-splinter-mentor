@@ -65,6 +65,12 @@ export function EnhancedOutputConsole({ currentCode = "", currentLanguage = "pyt
   };
 
   const runCode = async () => {
+    console.log('Run Code button clicked:', { 
+      hasCode: !!currentCode.trim(), 
+      language: currentLanguage,
+      codeLength: currentCode.length 
+    });
+
     if (!currentCode.trim()) {
       addOutput("❌ No code to execute", "error");
       toast({
@@ -81,6 +87,7 @@ export function EnhancedOutputConsole({ currentCode = "", currentLanguage = "pyt
     addOutput(`🚀 Executing ${currentLanguage} code...`, "info");
 
     try {
+      console.log('Invoking execute-code function...');
       const { data, error } = await supabase.functions.invoke('execute-code', {
         body: { 
           code: currentCode, 
@@ -89,8 +96,10 @@ export function EnhancedOutputConsole({ currentCode = "", currentLanguage = "pyt
       });
 
       const executionTime = Date.now() - startTime;
+      console.log('Execution response:', { data, error, executionTime });
 
       if (error) {
+        console.error('Execution error:', error);
         addOutput(`❌ Execution failed: ${error.message}`, "error", executionTime);
         toast({
           title: "Execution Failed",
@@ -132,6 +141,7 @@ export function EnhancedOutputConsole({ currentCode = "", currentLanguage = "pyt
   };
 
   const clearConsole = () => {
+    console.log('Clear Console button clicked');
     setOutput([]);
     toast({
       title: "Console Cleared",
@@ -140,6 +150,7 @@ export function EnhancedOutputConsole({ currentCode = "", currentLanguage = "pyt
   };
 
   const copyOutput = async () => {
+    console.log('Copy Output button clicked');
     const filteredOutput = getFilteredOutput();
     const textContent = filteredOutput
       .map(entry => `[${entry.timestamp.toLocaleTimeString()}] ${entry.content}`)
@@ -147,11 +158,13 @@ export function EnhancedOutputConsole({ currentCode = "", currentLanguage = "pyt
 
     try {
       await navigator.clipboard.writeText(textContent);
+      console.log('Output copied to clipboard');
       toast({
         title: "Output Copied! 📋",
         description: "Console output has been copied to clipboard",
       });
     } catch (error) {
+      console.error('Failed to copy output:', error);
       toast({
         title: "Copy Failed",
         description: "Could not copy output to clipboard",
@@ -243,24 +256,52 @@ export function EnhancedOutputConsole({ currentCode = "", currentLanguage = "pyt
             </Select>
 
             <Button 
-              onClick={runCode} 
+              onClick={() => {
+                console.log('Run Code button clicked');
+                runCode();
+              }}
               disabled={isLoading}
               size="sm"
               className="bg-success hover:bg-success/90"
+              title="Execute code"
             >
               <Play className="h-4 w-4 mr-1" />
               {isLoading ? "Running..." : "Run"}
             </Button>
 
-            <Button onClick={downloadOutput} size="sm" variant="outline">
+            <Button 
+              onClick={() => {
+                console.log('Download Output button clicked');
+                downloadOutput();
+              }}
+              size="sm" 
+              variant="outline"
+              title="Download output"
+            >
               <Download className="h-4 w-4" />
             </Button>
 
-            <Button onClick={copyOutput} size="sm" variant="outline">
+            <Button 
+              onClick={() => {
+                console.log('Copy Output button clicked');
+                copyOutput();
+              }}
+              size="sm" 
+              variant="outline"
+              title="Copy output to clipboard"
+            >
               <Copy className="h-4 w-4" />
             </Button>
 
-            <Button onClick={clearConsole} size="sm" variant="outline">
+            <Button 
+              onClick={() => {
+                console.log('Clear Console button clicked');
+                clearConsole();
+              }}
+              size="sm" 
+              variant="outline"
+              title="Clear console"
+            >
               <Trash2 className="h-4 w-4" />
             </Button>
 

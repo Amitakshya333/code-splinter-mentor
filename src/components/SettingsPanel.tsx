@@ -6,6 +6,8 @@ import { KeyboardShortcuts } from "./KeyboardShortcuts";
 import { EnvironmentManager } from "./EnvironmentManager";
 
 export const SettingsPanel = () => {
+  console.log('SettingsPanel rendered');
+  
   return (
     <Card className="p-6 h-full flex flex-col">
       <div className="flex items-center gap-2 mb-4">
@@ -13,11 +15,21 @@ export const SettingsPanel = () => {
         <h3 className="text-lg font-semibold">Settings</h3>
       </div>
 
-      <Tabs defaultValue="theme" className="flex-1 flex flex-col">
+      <Tabs 
+        defaultValue="theme" 
+        className="flex-1 flex flex-col"
+        onValueChange={(value) => console.log('Settings tab changed:', value)}
+      >
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="theme">Theme</TabsTrigger>
-          <TabsTrigger value="shortcuts">Shortcuts</TabsTrigger>
-          <TabsTrigger value="environment">Environment</TabsTrigger>
+          <TabsTrigger value="theme" onClick={() => console.log('Theme tab clicked')}>
+            Theme
+          </TabsTrigger>
+          <TabsTrigger value="shortcuts" onClick={() => console.log('Shortcuts tab clicked')}>
+            Shortcuts
+          </TabsTrigger>
+          <TabsTrigger value="environment" onClick={() => console.log('Environment tab clicked')}>
+            Environment
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="theme" className="flex-1 mt-4">

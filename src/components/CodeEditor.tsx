@@ -119,6 +119,8 @@ export const CodeEditor = ({ onCodeChange, onLanguageChange }: CodeEditorProps) 
   };
 
   const handleFixCode = async () => {
+    console.log('AI Fix button clicked:', { hasCode: !!code.trim(), language: selectedLanguage });
+    
     if (!code.trim()) {
       toast({
         title: "No code to fix",
@@ -129,7 +131,13 @@ export const CodeEditor = ({ onCodeChange, onLanguageChange }: CodeEditorProps) 
     }
 
     setIsFixing(true);
+    toast({
+      title: "Analyzing Code...",
+      description: "AI is reviewing your code",
+    });
+
     try {
+      console.log('Invoking ai-fix-code function...');
       const { data, error } = await supabase.functions.invoke('ai-fix-code', {
         body: {
           code,
@@ -137,22 +145,33 @@ export const CodeEditor = ({ onCodeChange, onLanguageChange }: CodeEditorProps) 
         }
       });
 
-      if (error) throw error;
+      console.log('AI Fix response:', { data, error });
 
-      if (data.fixedCode) {
+      if (error) {
+        console.error('AI Fix error:', error);
+        throw new Error(error.message || 'Failed to fix code');
+      }
+
+      if (data?.fixedCode) {
         setCode(data.fixedCode);
         onCodeChange?.(data.fixedCode);
         
         toast({
-          title: "Code Fixed!",
-          description: `Applied ${data.changes?.length || 0} improvements.`,
+          title: "Code Enhanced! 🚀",
+          description: `Applied ${data.changes?.length || 0} AI improvements`,
+        });
+      } else {
+        toast({
+          title: "No Changes Needed",
+          description: "Your code looks good!",
         });
       }
     } catch (error) {
       console.error('Error fixing code:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast({
-        title: "Error",
-        description: "Failed to fix code. Please try again.",
+        title: "AI Fix Failed",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

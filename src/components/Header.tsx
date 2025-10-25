@@ -12,16 +12,14 @@ interface HeaderProps {
 
 export function Header({ currentProject, onFeedbackClick, onSettingsClick }: HeaderProps) {
   const handleGitHubClick = () => {
-    const currentUrl = window.location.href;
-    const projectName = currentProject || "CodeSplinter-Project";
-    
-    // Create a GitHub repository URL or redirect to GitHub
+    console.log('GitHub button clicked:', { currentProject, currentUrl: window.location.href });
     const githubUrl = "https://github.com/new";
     window.open(githubUrl, '_blank');
     toast.success("Opening GitHub to create a new repository");
   };
 
   const handleShareClick = async () => {
+    console.log('Share button clicked');
     const currentUrl = window.location.href;
     const shareData = {
       title: `CodeSplinter - ${currentProject || 'Code Editor'}`,
@@ -32,18 +30,23 @@ export function Header({ currentProject, onFeedbackClick, onSettingsClick }: Hea
     try {
       if (navigator.share && navigator.canShare(shareData)) {
         await navigator.share(shareData);
+        console.log('Shared via Web Share API');
         toast.success("Project shared successfully!");
       } else {
         // Fallback: copy to clipboard
         await navigator.clipboard.writeText(currentUrl);
+        console.log('URL copied to clipboard (Web Share API not available)');
         toast.success("Project link copied to clipboard!");
       }
     } catch (error) {
+      console.error('Share error:', error);
       // Fallback: copy to clipboard
       try {
         await navigator.clipboard.writeText(currentUrl);
+        console.log('URL copied to clipboard (fallback)');
         toast.success("Project link copied to clipboard!");
       } catch (clipboardError) {
+        console.error('Clipboard error:', clipboardError);
         toast.error("Unable to share project");
       }
     }
@@ -73,19 +76,51 @@ export function Header({ currentProject, onFeedbackClick, onSettingsClick }: Hea
         </div>
         
         <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm" onClick={handleGitHubClick}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => {
+              console.log('GitHub button clicked');
+              handleGitHubClick();
+            }}
+            title="Create GitHub Repository"
+          >
             <Github className="h-4 w-4 mr-1" />
             GitHub
           </Button>
-          <Button variant="outline" size="sm" onClick={handleShareClick}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => {
+              console.log('Share button clicked');
+              handleShareClick();
+            }}
+            title="Share Project"
+          >
             <ExternalLink className="h-4 w-4 mr-1" />
             Share
           </Button>
-          <Button variant="outline" size="sm" onClick={onFeedbackClick}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => {
+              console.log('Feedback button clicked');
+              onFeedbackClick?.();
+            }}
+            title="Give Feedback"
+          >
             <MessageSquare className="h-4 w-4 mr-1" />
             Feedback
           </Button>
-          <Button variant="ghost" size="icon" onClick={onSettingsClick}>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => {
+              console.log('Settings button clicked');
+              onSettingsClick?.();
+            }}
+            title="Open Settings"
+          >
             <Settings className="h-4 w-4" />
           </Button>
           <ThemeToggle />

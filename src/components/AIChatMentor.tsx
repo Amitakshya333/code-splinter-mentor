@@ -47,7 +47,23 @@ export const AIChatMentor = ({ currentCode = "", currentProject }: AIChatMentorP
   const { toast } = useToast();
 
   const handleSendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+    console.log('AI Chat Send button clicked:', { 
+      hasInput: !!input.trim(), 
+      isLoading, 
+      messageCount: messages.length,
+      hasCode: !!currentCode 
+    });
+
+    if (!input.trim() || isLoading) {
+      if (!input.trim()) {
+        toast({
+          title: "Empty Message",
+          description: "Please type a message first",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -62,6 +78,7 @@ export const AIChatMentor = ({ currentCode = "", currentProject }: AIChatMentorP
     setIsLoading(true);
 
     try {
+      console.log('Invoking gemini-chat function...');
       const { data, error } = await supabase.functions.invoke('gemini-chat', {
         body: {
           messages: [...messages, userMessage].map(msg => ({
@@ -72,24 +89,34 @@ export const AIChatMentor = ({ currentCode = "", currentProject }: AIChatMentorP
         }
       });
 
-      if (error) throw error;
+      console.log('AI Chat response:', { data, error });
+
+      if (error) {
+        console.error('AI Chat error:', error);
+        throw new Error(error.message || 'Failed to get AI response');
+      }
 
       const aiResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: "assistant",
-        content: data.response,
+        content: data.response || 'I received your message but have no response.',
         timestamp: new Date(),
         category: "explanation"
       };
 
       setMessages(prev => [...prev, aiResponse]);
+      console.log('AI response added to chat');
     } catch (error) {
       console.error('Error sending message:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       toast({
-        title: "Error",
-        description: "Failed to get AI response. Please try again.",
+        title: "AI Chat Failed",
+        description: errorMessage,
         variant: "destructive",
       });
+      
+      // Restore the input so user can try again
+      setInput(currentInput);
     } finally {
       setIsLoading(false);
     }
