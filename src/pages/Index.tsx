@@ -172,7 +172,7 @@ const Index = () => {
   }, [setCurrentProject]);
 
   const handleSettingsClick = useCallback(() => {
-    setFeedbackTabValue("settings");
+    setFeedbackTabValue("layout");
   }, [setFeedbackTabValue]);
 
   // Show loading screen while initializing
@@ -326,6 +326,22 @@ const Index = () => {
                       <TabsContent value="git" className="h-full mt-0">
                         <ErrorBoundary>
                           <GitPanel />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="learn" className="h-full mt-0">
+                        <ErrorBoundary>
+                          <EducationalHub 
+                            onCodeUpdate={handleRunCode}
+                            currentCode={currentCode}
+                            currentLanguage={currentLanguage}
+                          />
+                        </ErrorBoundary>
+                      </TabsContent>
+                      
+                      <TabsContent value="mentorship" className="h-full mt-0">
+                        <ErrorBoundary>
+                          <LearningFeatures onCodeUpdate={handleRunCode} />
                         </ErrorBoundary>
                       </TabsContent>
                       
