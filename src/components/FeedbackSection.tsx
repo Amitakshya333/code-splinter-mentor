@@ -55,13 +55,29 @@ export const FeedbackSection: React.FC = () => {
     }
 
     setIsSubmitting(true);
-    console.log('Submitting feedback:', { type: feedbackType, title, rating });
+    console.log('=== FEEDBACK SUBMISSION DEBUG ===');
+    console.log('1. Form data:', { type: feedbackType, title, rating });
 
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      // Get current session (more reliable than getUser)
+      console.log('2. Checking auth session...');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (!user) {
+      console.log('3. Session exists:', !!session);
+      console.log('4. User ID:', session?.user?.id);
+      
+      if (sessionError) {
+        console.error('5. Session error:', sessionError);
+        toast({
+          title: "Authentication Error",
+          description: "Failed to verify authentication. Please try signing in again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (!session || !session.user) {
+        console.error('6. No session or user found');
         toast({
           title: "Authentication Required",
           description: "Please sign in to submit feedback",
@@ -71,10 +87,11 @@ export const FeedbackSection: React.FC = () => {
       }
 
       // Insert feedback into Supabase
+      console.log('7. Attempting to insert feedback...');
       const { data, error } = await supabase
         .from('feedback')
         .insert({
-          user_id: user.id,
+          user_id: session.user.id,
           type: feedbackType,
           title: title.trim(),
           description: description.trim(),
@@ -84,9 +101,19 @@ export const FeedbackSection: React.FC = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      console.log('8. Insert result:', { data, error });
+      
+      if (error) {
+        console.error('9. Insert error details:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
+        throw error;
+      }
 
-      console.log('Feedback saved successfully:', data);
+      console.log('10. Feedback saved successfully:', data);
 
       // Add to local state
       const newFeedback: FeedbackItem = {
@@ -106,15 +133,19 @@ export const FeedbackSection: React.FC = () => {
       setDescription('');
       setRating(5);
 
+      console.log('11. Feedback submission complete');
+      console.log('=================================');
+
       toast({
         title: "Feedback Submitted! 🎉",
         description: "Thank you for helping us improve CodeSplinter",
       });
-    } catch (error) {
-      console.error('Error submitting feedback:', error);
+    } catch (error: any) {
+      console.error('ERROR: Feedback submission failed:', error);
+      console.log('=================================');
       toast({
         title: "Submission Failed",
-        description: "Failed to submit feedback. Please try again.",
+        description: error?.message || "Failed to submit feedback. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -137,9 +168,9 @@ export const FeedbackSection: React.FC = () => {
   useEffect(() => {
     const loadFeedback = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (!user) {
+        if (!session?.user) {
           setIsLoading(false);
           return;
         }
@@ -147,7 +178,7 @@ export const FeedbackSection: React.FC = () => {
         const { data, error } = await supabase
           .from('feedback')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('user_id', session.user.id)
           .order('created_at', { ascending: false })
           .limit(10);
 
