@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   MessageSquare, 
   Star, 
@@ -32,6 +33,8 @@ export const FeedbackSection: React.FC = () => {
   const [description, setDescription] = useState('');
   const [rating, setRating] = useState(5);
   const [feedbackHistory, setFeedbackHistory] = useState<FeedbackItem[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   const feedbackTypes = [
@@ -41,7 +44,7 @@ export const FeedbackSection: React.FC = () => {
     { id: 'praise', label: 'Praise', icon: Heart, color: 'bg-green-100 text-green-800' }
   ];
 
-  const handleSubmitFeedback = () => {
+  const handleSubmitFeedback = async () => {
     if (!title.trim() || !description.trim()) {
       toast({
         title: "Incomplete Feedback",
@@ -51,32 +54,72 @@ export const FeedbackSection: React.FC = () => {
       return;
     }
 
-    const newFeedback: FeedbackItem = {
-      id: Date.now().toString(),
-      type: feedbackType,
-      title: title.trim(),
-      description: description.trim(),
-      rating,
-      timestamp: new Date(),
-      status: 'pending'
-    };
+    setIsSubmitting(true);
+    console.log('Submitting feedback:', { type: feedbackType, title, rating });
 
-    setFeedbackHistory(prev => [newFeedback, ...prev]);
-    
-    // Save to localStorage
-    const savedFeedback = JSON.parse(localStorage.getItem('codesplinter-feedback') || '[]');
-    const updatedFeedback = [newFeedback, ...savedFeedback];
-    localStorage.setItem('codesplinter-feedback', JSON.stringify(updatedFeedback));
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please sign in to submit feedback",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    // Reset form
-    setTitle('');
-    setDescription('');
-    setRating(5);
+      // Insert feedback into Supabase
+      const { data, error } = await supabase
+        .from('feedback')
+        .insert({
+          user_id: user.id,
+          type: feedbackType,
+          title: title.trim(),
+          description: description.trim(),
+          rating,
+          status: 'pending'
+        })
+        .select()
+        .single();
 
-    toast({
-      title: "Feedback Submitted! 🎉",
-      description: "Thank you for helping us improve CodeSplinter",
-    });
+      if (error) throw error;
+
+      console.log('Feedback saved successfully:', data);
+
+      // Add to local state
+      const newFeedback: FeedbackItem = {
+        id: data.id,
+        type: data.type as any,
+        title: data.title,
+        description: data.description || '',
+        rating: data.rating || 5,
+        timestamp: new Date(data.created_at),
+        status: data.status as any
+      };
+      
+      setFeedbackHistory(prev => [newFeedback, ...prev]);
+
+      // Reset form
+      setTitle('');
+      setDescription('');
+      setRating(5);
+
+      toast({
+        title: "Feedback Submitted! 🎉",
+        description: "Thank you for helping us improve CodeSplinter",
+      });
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      toast({
+        title: "Submission Failed",
+        description: "Failed to submit feedback. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getTypeIcon = (type: string) => {
@@ -90,13 +133,46 @@ export const FeedbackSection: React.FC = () => {
     return typeConfig?.color || 'bg-gray-100 text-gray-800';
   };
 
-  // Load feedback history on component mount
-  React.useEffect(() => {
-    const savedFeedback = JSON.parse(localStorage.getItem('codesplinter-feedback') || '[]');
-    setFeedbackHistory(savedFeedback.map((f: any) => ({
-      ...f,
-      timestamp: new Date(f.timestamp)
-    })));
+  // Load feedback history from Supabase on component mount
+  useEffect(() => {
+    const loadFeedback = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          setIsLoading(false);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('feedback')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (error) throw error;
+
+        const formattedFeedback: FeedbackItem[] = data.map(item => ({
+          id: item.id,
+          type: item.type as any,
+          title: item.title,
+          description: item.description || '',
+          rating: item.rating || 5,
+          timestamp: new Date(item.created_at),
+          status: item.status as any
+        }));
+
+        setFeedbackHistory(formattedFeedback);
+        console.log('Loaded feedback history:', formattedFeedback.length, 'items');
+      } catch (error) {
+        console.error('Error loading feedback:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadFeedback();
   }, []);
 
   return (
@@ -182,9 +258,13 @@ export const FeedbackSection: React.FC = () => {
           </div>
 
           {/* Submit Button */}
-          <Button onClick={handleSubmitFeedback} className="w-full">
+          <Button 
+            onClick={handleSubmitFeedback} 
+            className="w-full"
+            disabled={isSubmitting}
+          >
             <Send className="w-3 h-3 mr-2" />
-            Submit Feedback
+            {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
           </Button>
         </CardContent>
       </Card>
