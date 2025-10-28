@@ -57,93 +57,165 @@ export const FeedbackSection: React.FC = () => {
     }
 
     setIsSubmitting(true);
-    console.log('=== FEEDBACK SUBMISSION DEBUG ===');
-    console.log('1. Form data:', { type: feedbackType, title, rating });
+    console.log('=== FEEDBACK SUBMISSION START ===');
 
     try {
-      // Check if user is authenticated
-      console.log('2. Checking auth session...');
+      console.log('1. Checking authentication...');
+      
+      // CRITICAL: Get fresh session directly from Supabase
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      console.log('3. Session exists:', !!session);
-      console.log('4. User ID:', session?.user?.id || userId);
+      console.log('2. Session check:', {
+        hasSession: !!session,
+        userId: session?.user?.id,
+        error: sessionError
+      });
       
-      const newFeedback: FeedbackItem = {
-        id: `local-${Date.now()}`,
-        type: feedbackType,
-        title: title.trim(),
-        description: description.trim(),
-        rating,
-        timestamp: new Date(),
-        status: 'pending'
-      };
-
-      // If authenticated, save to Supabase
-      if (session?.user && !sessionError) {
-        console.log('5. User authenticated, saving to Supabase...');
+      // If no session, try getting user directly
+      if (!session) {
+        console.log('3. No session found, trying direct user check...');
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        
+        console.log('4. Direct user check:', { 
+          userId: user?.id, 
+          error: userError 
+        });
+        
+        if (!user) {
+          console.error('❌ No authenticated user found');
+          toast({
+            title: "Authentication Required",
+            description: "Please refresh the page and try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // Use user ID from direct check
+        console.log('5. Submitting feedback with user ID:', user.id);
+        
+        const feedbackRecord = {
+          user_id: user.id,
+          type: feedbackType,
+          title: title.trim(),
+          description: description.trim(),
+          rating: rating
+        };
+        
+        console.log('6. Feedback record:', feedbackRecord);
+        
         const { data, error } = await supabase
           .from('feedback')
-          .insert({
-            user_id: session.user.id,
+          .insert([feedbackRecord])
+          .select()
+          .single();
+        
+        console.log('7. Supabase response:', { data, error });
+        
+        if (error) {
+          console.error('❌ Insert failed:', error);
+          toast({
+            title: "Submission Failed",
+            description: `Error: ${error.message}`,
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        console.log('✅ SUCCESS - Feedback saved to Supabase');
+        
+        // Add to local state
+        if (data) {
+          const newFeedback: FeedbackItem = {
+            id: data.id,
             type: feedbackType,
             title: title.trim(),
             description: description.trim(),
             rating,
-            status: 'pending'
-          })
-          .select()
-          .single();
-
-        console.log('6. Supabase insert result:', { data, error });
-        
-        if (error) {
-          console.error('7. Supabase error, falling back to localStorage:', error);
-          // Fall back to localStorage if Supabase fails
-        } else if (data) {
-          newFeedback.id = data.id;
-          console.log('8. Feedback saved to Supabase successfully');
+            timestamp: new Date(data.created_at),
+            status: data.status as any
+          };
+          setFeedbackHistory(prev => [newFeedback, ...prev]);
         }
-      } else {
-        console.log('5. User not authenticated, saving to localStorage only');
+        
+        // Reset form
+        setTitle('');
+        setDescription('');
+        setRating(5);
+        
+        toast({
+          title: "Feedback Submitted! 🎉",
+          description: "Thank you for helping us improve CodeSplinter",
+        });
+        
+        console.log('=== FEEDBACK SUBMISSION COMPLETE ===');
+        return;
       }
-
-      // Always save to localStorage as backup/cache
-      const existingFeedback = JSON.parse(localStorage.getItem('feedback_history') || '[]');
-      const updatedFeedback = [
-        {
-          ...newFeedback,
-          localUserId: userId,
-          timestamp: newFeedback.timestamp.toISOString()
-        },
-        ...existingFeedback
-      ].slice(0, 50); // Keep last 50 items
       
-      localStorage.setItem('feedback_history', JSON.stringify(updatedFeedback));
-      console.log('9. Feedback saved to localStorage');
-
-      // Update UI state
-      setFeedbackHistory(prev => [newFeedback, ...prev]);
-
+      // If session exists, use it
+      console.log('3. Session found, submitting with session user ID:', session.user.id);
+      
+      const feedbackRecord = {
+        user_id: session.user.id,
+        type: feedbackType,
+        title: title.trim(),
+        description: description.trim(),
+        rating: rating
+      };
+      
+      console.log('4. Feedback record:', feedbackRecord);
+      
+      const { data, error } = await supabase
+        .from('feedback')
+        .insert([feedbackRecord])
+        .select()
+        .single();
+      
+      console.log('5. Supabase response:', { data, error });
+      
+      if (error) {
+        console.error('❌ Insert failed:', error);
+        toast({
+          title: "Submission Failed",
+          description: `Error: ${error.message}`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      console.log('✅ SUCCESS - Feedback saved to Supabase');
+      
+      // Add to local state
+      if (data) {
+        const newFeedback: FeedbackItem = {
+          id: data.id,
+          type: feedbackType,
+          title: title.trim(),
+          description: description.trim(),
+          rating,
+          timestamp: new Date(data.created_at),
+          status: data.status as any
+        };
+        setFeedbackHistory(prev => [newFeedback, ...prev]);
+      }
+      
       // Reset form
       setTitle('');
       setDescription('');
       setRating(5);
-
-      console.log('10. Feedback submission complete');
-      console.log('=================================');
-
+      
       toast({
         title: "Feedback Submitted! 🎉",
-        description: session?.user 
-          ? "Thank you for helping us improve CodeSplinter" 
-          : "Your feedback has been saved locally",
+        description: "Thank you for helping us improve CodeSplinter",
       });
+      
+      console.log('=== FEEDBACK SUBMISSION COMPLETE ===');
+      
     } catch (error: any) {
-      console.error('ERROR: Feedback submission failed:', error);
-      console.log('=================================');
+      console.error('❌ UNEXPECTED ERROR:', error);
       toast({
         title: "Submission Failed",
-        description: error?.message || "Failed to submit feedback. Please try again.",
+        description: error?.message || "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {
@@ -162,62 +234,46 @@ export const FeedbackSection: React.FC = () => {
     return typeConfig?.color || 'bg-gray-100 text-gray-800';
   };
 
-  // Load feedback history from Supabase and localStorage on component mount
+  // Load feedback history from Supabase on component mount
   useEffect(() => {
     const loadFeedback = async () => {
       try {
-        // Try to load from Supabase first
+        console.log('=== LOADING FEEDBACK HISTORY ===');
+        
+        // Get fresh session
         const { data: { session } } = await supabase.auth.getSession();
         
-        let loadedFeedback: FeedbackItem[] = [];
-
-        if (session?.user) {
-          const { data, error } = await supabase
-            .from('feedback')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .order('created_at', { ascending: false })
-            .limit(10);
-
-          if (!error && data) {
-            loadedFeedback = data.map(item => ({
-              id: item.id,
-              type: item.type as any,
-              title: item.title,
-              description: item.description || '',
-              rating: item.rating || 5,
-              timestamp: new Date(item.created_at),
-              status: item.status as any
-            }));
-            console.log('Loaded feedback from Supabase:', loadedFeedback.length, 'items');
-          }
+        if (!session?.user) {
+          console.log('No authenticated user, skipping feedback load');
+          setIsLoading(false);
+          return;
         }
 
-        // Load from localStorage as fallback or additional source
-        const localFeedback = JSON.parse(localStorage.getItem('feedback_history') || '[]');
-        const formattedLocalFeedback: FeedbackItem[] = localFeedback
-          .filter((item: any) => item.localUserId === userId)
-          .map((item: any) => ({
+        console.log('Loading feedback for user:', session.user.id);
+        
+        const { data, error } = await supabase
+          .from('feedback')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (error) {
+          console.error('Error loading feedback:', error);
+        } else if (data) {
+          const loadedFeedback: FeedbackItem[] = data.map(item => ({
             id: item.id,
-            type: item.type,
+            type: item.type as any,
             title: item.title,
             description: item.description || '',
             rating: item.rating || 5,
-            timestamp: new Date(item.timestamp),
-            status: item.status || 'pending'
-          }))
-          .slice(0, 10);
-
-        if (formattedLocalFeedback.length > 0) {
-          console.log('Loaded feedback from localStorage:', formattedLocalFeedback.length, 'items');
+            timestamp: new Date(item.created_at),
+            status: item.status as any
+          }));
+          
+          console.log('✅ Loaded', loadedFeedback.length, 'feedback items from Supabase');
+          setFeedbackHistory(loadedFeedback);
         }
-
-        // Merge and deduplicate
-        const allFeedback = [...loadedFeedback, ...formattedLocalFeedback]
-          .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-          .slice(0, 10);
-
-        setFeedbackHistory(allFeedback);
       } catch (error) {
         console.error('Error loading feedback:', error);
       } finally {
@@ -226,7 +282,7 @@ export const FeedbackSection: React.FC = () => {
     };
 
     loadFeedback();
-  }, [userId]);
+  }, []);
 
   return (
     <div className="h-full space-y-4">
