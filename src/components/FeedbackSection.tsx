@@ -51,19 +51,11 @@ export const FeedbackSection: React.FC = () => {
 
   const loadFeedback = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user) {
-        setIsLoading(false);
-        return;
-      }
-
       const { data, error } = await supabase
         .from('feedback')
         .select('*')
-        .eq('user_id', session.user.id)
         .order('created_at', { ascending: false })
-        .limit(5);
+        .limit(10);
 
       if (error) throw error;
       
@@ -88,33 +80,11 @@ export const FeedbackSection: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // Get current session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) throw sessionError;
-
-      // If no session, try getting user directly
-      let userId = session?.user?.id;
-      
-      if (!userId) {
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError) throw userError;
-        if (!user) {
-          toast({
-            title: "Authentication Required",
-            description: "Please refresh the page and try again",
-            variant: "destructive",
-          });
-          return;
-        }
-        userId = user.id;
-      }
-
-      // Insert feedback
+      // Insert feedback without user_id (anonymous)
       const { data, error } = await supabase
         .from('feedback')
         .insert([{
-          user_id: userId,
+          user_id: null,
           type: feedbackType,
           title: title.trim(),
           description: description.trim(),
