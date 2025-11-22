@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,10 +16,10 @@ serve(async (req) => {
 
   try {
     // Validate API key
-    if (!geminiApiKey) {
-      console.error('GEMINI_API_KEY is not configured');
+    if (!lovableApiKey) {
+      console.error('LOVABLE_API_KEY is not configured');
       return new Response(JSON.stringify({ 
-        error: 'API configuration error. Please configure GEMINI_API_KEY.' 
+        error: 'API configuration error. Please contact support.' 
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -30,21 +30,10 @@ serve(async (req) => {
     
     console.log('Received chat request:', { messageCount: messages.length, hasCode: !!code });
 
-    // Convert messages to Gemini format
-    const lastUserMessage = messages[messages.length - 1];
-    const conversationHistory = messages.slice(0, -1).map(msg => 
-      `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`
-    ).join('\n\n');
-
+    // Build system prompt with code context
     const systemPrompt = `You are an expert AI coding mentor and assistant with advanced reasoning capabilities. You help developers learn, understand, and improve their code through thoughtful analysis and step-by-step reasoning.
 
-Current code context:
-\`\`\`
-${code || 'No code provided'}
-\`\`\`
-
-Previous conversation:
-${conversationHistory}
+${code ? `Current code context:\n\`\`\`\n${code}\n\`\`\`\n` : ''}
 
 Guidelines for your responses:
 - Think through problems step by step before providing solutions
@@ -55,60 +44,32 @@ Guidelines for your responses:
 - Be encouraging and supportive while being thorough
 - Use code examples to illustrate your points
 - Consider edge cases and best practices
-- Provide multiple approaches when relevant
+- Provide multiple approaches when relevant`;
 
-Current user question: ${lastUserMessage.content}
-
-Please provide a thoughtful, well-reasoned response that demonstrates your thinking process.`;
-
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${geminiApiKey}`, {
+    // Call Lovable AI Gateway
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: systemPrompt
-              }
-            ]
-          }
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...messages
         ],
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 2048,
-        },
-        safetySettings: [
-          {
-            category: "HARM_CATEGORY_HARASSMENT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          },
-          {
-            category: "HARM_CATEGORY_HATE_SPEECH",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          },
-          {
-            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          },
-          {
-            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-            threshold: "BLOCK_MEDIUM_AND_ABOVE"
-          }
-        ]
+        temperature: 0.7,
+        max_tokens: 2048,
       }),
     });
 
     const data = await response.json();
     
-    console.log('Gemini API response status:', response.status);
+    console.log('Lovable AI response status:', response.status);
     
     if (!response.ok) {
-      console.error('Gemini API error:', data);
+      console.error('Lovable AI error:', data);
       
       // Handle rate limiting
       if (response.status === 429) {
@@ -120,47 +81,36 @@ Please provide a thoughtful, well-reasoned response that demonstrates your think
         });
       }
       
-      // Handle quota exceeded
-      if (response.status === 403) {
+      // Handle payment required
+      if (response.status === 402) {
         return new Response(JSON.stringify({ 
-          error: 'API quota exceeded. Please check your Gemini API usage.' 
+          error: 'Payment required. Please add credits to your Lovable AI workspace.' 
         }), {
-          status: 403,
+          status: 402,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       
-      // Handle invalid API key
-      if (response.status === 401 || response.status === 400) {
+      // Handle unauthorized
+      if (response.status === 401) {
         return new Response(JSON.stringify({ 
-          error: 'Invalid API key or request. Please check your configuration.' 
+          error: 'Authentication error. Please contact support.' 
         }), {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       
-      throw new Error(data.error?.message || 'Gemini API error');
+      throw new Error(data.error?.message || 'Lovable AI error');
     }
 
-    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-      console.error('Unexpected Gemini response format:', data);
-      
-      // Handle content safety blocks
-      if (data.promptFeedback?.blockReason) {
-        return new Response(JSON.stringify({ 
-          error: `Content blocked: ${data.promptFeedback.blockReason}. Please rephrase your request.` 
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      
-      throw new Error('Invalid response format from Gemini API');
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('Unexpected Lovable AI response format:', data);
+      throw new Error('Invalid response format from Lovable AI');
     }
 
-    const aiResponse = data.candidates[0].content.parts[0].text;
-    console.log('Gemini response generated successfully');
+    const aiResponse = data.choices[0].message.content;
+    console.log('Lovable AI response generated successfully');
 
     return new Response(JSON.stringify({ response: aiResponse }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
