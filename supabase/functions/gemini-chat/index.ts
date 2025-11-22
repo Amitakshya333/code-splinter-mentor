@@ -15,6 +15,17 @@ serve(async (req) => {
   }
 
   try {
+    // Validate API key
+    if (!geminiApiKey) {
+      console.error('GEMINI_API_KEY is not configured');
+      return new Response(JSON.stringify({ 
+        error: 'API configuration error. Please configure GEMINI_API_KEY.' 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const { messages, code } = await req.json();
     
     console.log('Received chat request:', { messageCount: messages.length, hasCode: !!code });
@@ -50,7 +61,7 @@ Current user question: ${lastUserMessage.content}
 
 Please provide a thoughtful, well-reasoned response that demonstrates your thinking process.`;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent?key=${geminiApiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -98,11 +109,53 @@ Please provide a thoughtful, well-reasoned response that demonstrates your think
     
     if (!response.ok) {
       console.error('Gemini API error:', data);
+      
+      // Handle rate limiting
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ 
+          error: 'Rate limit exceeded. Please wait a moment and try again.' 
+        }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      // Handle quota exceeded
+      if (response.status === 403) {
+        return new Response(JSON.stringify({ 
+          error: 'API quota exceeded. Please check your Gemini API usage.' 
+        }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      // Handle invalid API key
+      if (response.status === 401 || response.status === 400) {
+        return new Response(JSON.stringify({ 
+          error: 'Invalid API key or request. Please check your configuration.' 
+        }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
       throw new Error(data.error?.message || 'Gemini API error');
     }
 
     if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
       console.error('Unexpected Gemini response format:', data);
+      
+      // Handle content safety blocks
+      if (data.promptFeedback?.blockReason) {
+        return new Response(JSON.stringify({ 
+          error: `Content blocked: ${data.promptFeedback.blockReason}. Please rephrase your request.` 
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
       throw new Error('Invalid response format from Gemini API');
     }
 
@@ -114,7 +167,13 @@ Please provide a thoughtful, well-reasoned response that demonstrates your think
     });
   } catch (error) {
     console.error('Error in gemini-chat function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    
+    // Provide user-friendly error messages
+    const errorMessage = error.message?.includes('fetch') 
+      ? 'Network error. Please check your connection and try again.'
+      : error.message || 'An unexpected error occurred. Please try again.';
+    
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

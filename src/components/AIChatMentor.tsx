@@ -93,27 +93,69 @@ export const AIChatMentor = ({ currentCode = "", currentProject }: AIChatMentorP
 
       if (error) {
         console.error('AI Chat error:', error);
-        throw new Error(error.message || 'Failed to get AI response');
+        
+        // Handle specific error types
+        let errorTitle = "AI Chat Failed";
+        let errorDescription = error.message || 'Failed to get AI response';
+        
+        if (error.message?.includes('Rate limit')) {
+          errorTitle = "Rate Limit Exceeded";
+          errorDescription = "Please wait a moment before sending another message.";
+        } else if (error.message?.includes('quota') || error.message?.includes('403')) {
+          errorTitle = "API Quota Exceeded";
+          errorDescription = "The API usage limit has been reached. Please try again later.";
+        } else if (error.message?.includes('API key') || error.message?.includes('401')) {
+          errorTitle = "Configuration Error";
+          errorDescription = "There's an issue with the API configuration. Please contact support.";
+        } else if (error.message?.includes('Network')) {
+          errorTitle = "Network Error";
+          errorDescription = "Please check your internet connection and try again.";
+        }
+        
+        throw new Error(errorDescription);
+      }
+
+      if (!data || !data.response) {
+        throw new Error('No response received from AI');
       }
 
       const aiResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: "assistant",
-        content: data.response || 'I received your message but have no response.',
+        content: data.response,
         timestamp: new Date(),
         category: "explanation"
       };
 
       setMessages(prev => [...prev, aiResponse]);
       console.log('AI response added to chat');
+      
+      // Show success feedback
+      toast({
+        title: "Message Sent",
+        description: "AI mentor has responded",
+      });
+      
     } catch (error) {
       console.error('Error sending message:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      
       toast({
-        title: "AI Chat Failed",
+        title: "AI Chat Error",
         description: errorMessage,
         variant: "destructive",
       });
+      
+      // Add error message to chat for context
+      const errorResponse: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        type: "assistant",
+        content: `⚠️ Sorry, I encountered an error: ${errorMessage}\n\nPlease try again in a moment.`,
+        timestamp: new Date(),
+        category: "guidance"
+      };
+      
+      setMessages(prev => [...prev, errorResponse]);
       
       // Restore the input so user can try again
       setInput(currentInput);
