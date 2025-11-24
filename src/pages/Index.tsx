@@ -4,8 +4,8 @@ import { MultiTabCodeEditor } from "@/components/MultiTabCodeEditor";
 import { EnhancedOutputConsole } from "@/components/EnhancedOutputConsole";
 import { FileExplorer } from "@/components/FileExplorer";
 import { LayoutManager } from "@/components/LayoutManager";
-import { ProjectGuidance } from "@/components/ProjectGuidance";
-import { AIChatMentor } from "@/components/AIChatMentor";
+import { AIMentorPanel } from "@/components/AIMentorPanel";
+import { NavigatorPanel } from "@/components/NavigatorPanel";
 import { CollaborationPanel } from "@/components/CollaborationPanel";
 import { PerformancePanel } from "@/components/PerformancePanel";
 import { GitPanel } from "@/components/GitPanel";
@@ -190,29 +190,27 @@ const Index = () => {
       
       <div className="h-[calc(100vh-4rem)] w-full">
         <ResizablePanelGroup direction="horizontal" className="h-full">
-          {/* File Explorer Panel */}
-          {layoutSettings.showExplorer && (
-            <>
-              <ResizablePanel 
-                defaultSize={layoutSettings.explorerWidth} 
-                minSize={10} 
-                maxSize={40}
-                className="min-w-0"
-              >
-                <div className="h-full p-2 border-r">
-                  <ErrorBoundary>
-                    <FileExplorer />
-                  </ErrorBoundary>
-                </div>
-              </ResizablePanel>
-              <ResizableHandle withHandle />
-            </>
-          )}
-
-          {/* Main Editor Area */}
+          {/* AI Mentor Panel - Always Visible (Left) */}
           <ResizablePanel 
-            defaultSize={layoutSettings.editorWidth} 
-            minSize={30}
+            defaultSize={22}
+            minSize={18}
+            maxSize={30}
+            className="min-w-0"
+          >
+            <ErrorBoundary>
+              <AIMentorPanel 
+                currentCode={currentCode}
+                currentProject={currentProject}
+              />
+            </ErrorBoundary>
+          </ResizablePanel>
+          
+          <ResizableHandle withHandle />
+
+          {/* Workspace Panel (Center) */}
+          <ResizablePanel 
+            defaultSize={48}
+            minSize={35}
             className="min-w-0"
           >
             <ResizablePanelGroup direction="vertical" className="h-full">
@@ -266,126 +264,19 @@ const Index = () => {
             </ResizablePanelGroup>
           </ResizablePanel>
 
-          {/* Right Sidebar */}
-          {layoutSettings.showSidebar && (
-            <>
-              <ResizableHandle withHandle />
-              <ResizablePanel 
-                defaultSize={layoutSettings.sidebarWidth} 
-                minSize={15} 
-                maxSize={50}
-                className="min-w-0"
-              >
-                <div className="h-full border-l">
-                  <Tabs value={feedbackTabValue} onValueChange={setFeedbackTabValue} className="h-full flex flex-col">
-                    <div className="p-2 pb-0">
-                      <TabsList className="grid w-full grid-cols-8 text-xs">
-                        <TabsTrigger value="guidance" className="text-[10px] lg:text-xs">Guide</TabsTrigger>
-                        <TabsTrigger value="mentor" className="text-[10px] lg:text-xs">AI</TabsTrigger>
-                        <TabsTrigger value="learn" className="text-[10px] lg:text-xs">Learn</TabsTrigger>
-                        <TabsTrigger value="mentorship" className="text-[10px] lg:text-xs">Mentor</TabsTrigger>
-                        <TabsTrigger value="devtools" className="text-[10px] lg:text-xs">Tools</TabsTrigger>
-                        <TabsTrigger value="advanced" className="text-[10px] lg:text-xs">Advanced</TabsTrigger>
-                        <TabsTrigger value="deploy" className="text-[10px] lg:text-xs">Deploy</TabsTrigger>
-                        <TabsTrigger value="settings" className="text-[10px] lg:text-xs">Settings</TabsTrigger>
-                      </TabsList>
-                    </div>
-                    
-                    <div className="flex-1 p-2 overflow-hidden">
-                      <TabsContent value="guidance" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <ProjectGuidance onProjectSelect={handleProjectSelect} />
-                        </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="mentor" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <AIChatMentor 
-                            currentCode={currentCode}
-                            currentProject={currentProject}
-                          />
-                        </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="collab" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <CollaborationPanel 
-                            roomId={roomId}
-                            userId={userId}
-                            onShareRoom={handleShareRoom}
-                          />
-                        </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="perf" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <PerformancePanel />
-                        </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="git" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <GitPanel />
-                        </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="learn" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <EducationalHub 
-                            onCodeUpdate={handleRunCode}
-                            currentCode={currentCode}
-                            currentLanguage={currentLanguage}
-                          />
-                        </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="mentorship" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <LearningFeatures onCodeUpdate={handleRunCode} />
-                        </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="devtools" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <DeveloperTools />
-                        </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="advanced" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <AdvancedFeatures />
-                        </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="deploy" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <IntegrationDeployment />
-                        </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="settings" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <SettingsPanel />
-                        </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="feedback" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <FeedbackSection />
-                        </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="layout" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <LayoutManager />
-                        </ErrorBoundary>
-                      </TabsContent>
-                    </div>
-                  </Tabs>
-                </div>
-              </ResizablePanel>
-            </>
-          )}
+          <ResizableHandle withHandle />
+          
+          {/* Navigator Panel - Always Visible (Right) */}
+          <ResizablePanel 
+            defaultSize={30}
+            minSize={20}
+            maxSize={35}
+            className="min-w-0"
+          >
+            <ErrorBoundary>
+              <NavigatorPanel currentProject={currentProject} />
+            </ErrorBoundary>
+          </ResizablePanel>
         </ResizablePanelGroup>
       </div>
     </div>
