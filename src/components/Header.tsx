@@ -61,7 +61,7 @@ export function Header({ currentProject, onFeedbackClick, onSettingsClick }: Hea
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight">CodeSplinter</h1>
-              <p className="text-xs text-muted-foreground">Technical Mentor Platform</p>
+              <p className="text-xs text-muted-foreground">AI-Powered Code Editor & Mentor</p>
             </div>
           </div>
           
@@ -73,10 +73,6 @@ export function Header({ currentProject, onFeedbackClick, onSettingsClick }: Hea
               </Badge>
             </div>
           )}
-          
-          <Badge variant="secondary" className="text-xs bg-mentor-glow/10 text-mentor-primary border-mentor-primary/20">
-            Guided Learning Active
-          </Badge>
         </div>
         
         <div className="flex items-center space-x-2">

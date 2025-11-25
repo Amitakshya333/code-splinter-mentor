@@ -58,24 +58,11 @@
     --syntax-function: 217 91% 70%;
     --syntax-variable: 190 81% 67%;
 
-    /* Mentor Platform Colors */
-    --mentor-primary: 260 85% 65%; /* Warm purple for AI */
-    --mentor-secondary: 260 75% 55%; /* Deeper purple */
-    --mentor-glow: 260 85% 65%; /* AI presence glow */
-    --mentor-light: 260 85% 98%; /* Very light purple */
-    
-    --navigator-primary: 35 90% 65%; /* Warm orange for guidance */
-    --navigator-secondary: 35 80% 55%; /* Deeper orange */
-    --navigator-glow: 35 90% 65%; /* Guidance glow */
-    --navigator-light: 35 90% 98%; /* Very light orange */
-
-    /* Gradients */
+    /* Apple-style Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(213 94% 68%) 0%, hsl(213 94% 78%) 100%);
     --gradient-secondary: linear-gradient(135deg, hsl(240 5% 96%) 0%, hsl(240 6% 98%) 100%);
     --gradient-glass: linear-gradient(135deg, hsl(0 0% 100% / 0.8) 0%, hsl(240 5% 96% / 0.6) 100%);
     --gradient-subtle: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(240 5% 96%) 100%);
-    --gradient-mentor: linear-gradient(135deg, hsl(260 85% 65%) 0%, hsl(260 75% 55%) 100%);
-    --gradient-navigator: linear-gradient(135deg, hsl(35 90% 65%) 0%, hsl(35 80% 55%) 100%);
 
     /* Apple-style Shadows */
     --shadow-subtle: 0 1px 3px 0 hsl(240 6% 10% / 0.1);
@@ -134,18 +121,6 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
-    
-    /* Mentor Platform Colors - Dark Theme */
-    --mentor-primary: 260 85% 70%;
-    --mentor-secondary: 260 75% 60%;
-    --mentor-glow: 260 85% 70%;
-    --mentor-light: 260 50% 15%;
-    
-    --navigator-primary: 35 90% 70%;
-    --navigator-secondary: 35 80% 60%;
-    --navigator-glow: 35 90% 70%;
-    --navigator-light: 35 50% 15%;
-    
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;

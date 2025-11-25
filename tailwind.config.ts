@@ -77,27 +77,13 @@ export default {
 					number: 'hsl(var(--syntax-number))',
 					function: 'hsl(var(--syntax-function))',
 					variable: 'hsl(var(--syntax-variable))'
-				},
-				mentor: {
-					primary: 'hsl(var(--mentor-primary))',
-					secondary: 'hsl(var(--mentor-secondary))',
-					glow: 'hsl(var(--mentor-glow))',
-					light: 'hsl(var(--mentor-light))'
-				},
-				navigator: {
-					primary: 'hsl(var(--navigator-primary))',
-					secondary: 'hsl(var(--navigator-secondary))',
-					glow: 'hsl(var(--navigator-glow))',
-					light: 'hsl(var(--navigator-light))'
 				}
 			},
 			backgroundImage: {
 				'gradient-primary': 'var(--gradient-primary)',
 				'gradient-secondary': 'var(--gradient-secondary)',
 				'gradient-accent': 'var(--gradient-accent)',
-				'gradient-error': 'var(--gradient-error)',
-				'gradient-mentor': 'var(--gradient-mentor)',
-				'gradient-navigator': 'var(--gradient-navigator)'
+				'gradient-error': 'var(--gradient-error)'
 			},
 			boxShadow: {
 				'glow': 'var(--shadow-glow)',
