@@ -77,64 +77,100 @@ export const AIChatMentor = ({ currentCode = "", currentProject }: AIChatMentorP
     setInput("");
     setIsLoading(true);
 
+    // Create placeholder assistant message that will be updated
+    const assistantId = (Date.now() + 1).toString();
+    const assistantMessage: ChatMessage = {
+      id: assistantId,
+      type: "assistant",
+      content: "",
+      timestamp: new Date(),
+      category: "explanation"
+    };
+    setMessages(prev => [...prev, assistantMessage]);
+
     try {
-      console.log('Invoking gemini-chat function...');
-      const { data, error } = await supabase.functions.invoke('gemini-chat', {
-        body: {
+      console.log('Invoking gemini-chat function with streaming...');
+      
+      // Get the Supabase URL from environment
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      const response = await fetch(`${supabaseUrl}/functions/v1/gemini-chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({
           messages: [...messages, userMessage].map(msg => ({
             role: msg.type === 'user' ? 'user' : 'assistant',
             content: msg.content
           })),
           code: currentCode
-        }
+        }),
       });
 
-      console.log('AI Chat response:', { data, error });
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Streaming error:', errorData);
+        throw new Error(errorData.error || 'Failed to get AI response');
+      }
 
-      if (error) {
-        console.error('AI Chat error:', error);
-        
-        // Handle specific error types
-        let errorTitle = "AI Chat Failed";
-        let errorDescription = error.message || 'Failed to get AI response';
-        
-        if (error.message?.includes('Rate limit')) {
-          errorTitle = "Rate Limit Exceeded";
-          errorDescription = "Please wait a moment before sending another message.";
-        } else if (error.message?.includes('quota') || error.message?.includes('403')) {
-          errorTitle = "API Quota Exceeded";
-          errorDescription = "The API usage limit has been reached. Please try again later.";
-        } else if (error.message?.includes('API key') || error.message?.includes('401')) {
-          errorTitle = "Configuration Error";
-          errorDescription = "There's an issue with the API configuration. Please contact support.";
-        } else if (error.message?.includes('Network')) {
-          errorTitle = "Network Error";
-          errorDescription = "Please check your internet connection and try again.";
+      // Handle streaming response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+      let accumulatedContent = "";
+
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        textBuffer += decoder.decode(value, { stream: true });
+
+        // Process line-by-line
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            
+            if (content) {
+              accumulatedContent += content;
+              
+              // Update the assistant message in real-time
+              setMessages(prev => 
+                prev.map(msg => 
+                  msg.id === assistantId 
+                    ? { ...msg, content: accumulatedContent }
+                    : msg
+                )
+              );
+            }
+          } catch (e) {
+            // Incomplete JSON, wait for more data
+            textBuffer = line + "\n" + textBuffer;
+            break;
+          }
         }
-        
-        throw new Error(errorDescription);
       }
 
-      if (!data || !data.response) {
-        throw new Error('No response received from AI');
-      }
-
-      const aiResponse: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        type: "assistant",
-        content: data.response,
-        timestamp: new Date(),
-        category: "explanation"
-      };
-
-      setMessages(prev => [...prev, aiResponse]);
-      console.log('AI response added to chat');
-      
-      // Show success feedback
-      toast({
-        title: "Message Sent",
-        description: "AI mentor has responded",
-      });
+      console.log('Streaming completed');
+      setIsLoading(false);
       
     } catch (error) {
       console.error('Error sending message:', error);
@@ -146,20 +182,21 @@ export const AIChatMentor = ({ currentCode = "", currentProject }: AIChatMentorP
         variant: "destructive",
       });
       
-      // Add error message to chat for context
-      const errorResponse: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        type: "assistant",
-        content: `⚠️ Sorry, I encountered an error: ${errorMessage}\n\nPlease try again in a moment.`,
-        timestamp: new Date(),
-        category: "guidance"
-      };
-      
-      setMessages(prev => [...prev, errorResponse]);
+      // Update the assistant message with error
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === assistantId 
+            ? { 
+                ...msg, 
+                content: `⚠️ Sorry, I encountered an error: ${errorMessage}\n\nPlease try again in a moment.`,
+                category: "guidance"
+              }
+            : msg
+        )
+      );
       
       // Restore the input so user can try again
       setInput(currentInput);
-    } finally {
       setIsLoading(false);
     }
   };

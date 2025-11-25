@@ -46,7 +46,7 @@ Guidelines for your responses:
 - Consider edge cases and best practices
 - Provide multiple approaches when relevant`;
 
-    // Call Lovable AI Gateway
+    // Call Lovable AI Gateway with streaming enabled
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -61,14 +61,14 @@ Guidelines for your responses:
         ],
         temperature: 0.7,
         max_tokens: 2048,
+        stream: true,
       }),
     });
 
-    const data = await response.json();
-    
     console.log('Lovable AI response status:', response.status);
     
     if (!response.ok) {
+      const data = await response.json();
       console.error('Lovable AI error:', data);
       
       // Handle rate limiting
@@ -104,16 +104,14 @@ Guidelines for your responses:
       throw new Error(data.error?.message || 'Lovable AI error');
     }
 
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      console.error('Unexpected Lovable AI response format:', data);
-      throw new Error('Invalid response format from Lovable AI');
-    }
-
-    const aiResponse = data.choices[0].message.content;
-    console.log('Lovable AI response generated successfully');
-
-    return new Response(JSON.stringify({ response: aiResponse }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Return streaming response directly
+    return new Response(response.body, {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
     });
   } catch (error) {
     console.error('Error in gemini-chat function:', error);
