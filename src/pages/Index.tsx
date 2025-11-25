@@ -2,30 +2,24 @@ import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { Header } from "@/components/Header";
 import { MultiTabCodeEditor } from "@/components/MultiTabCodeEditor";
 import { EnhancedOutputConsole } from "@/components/EnhancedOutputConsole";
-import { FileExplorer } from "@/components/FileExplorer";
-import { LayoutManager } from "@/components/LayoutManager";
 import { ProjectGuidance } from "@/components/ProjectGuidance";
 import { AIChatMentor } from "@/components/AIChatMentor";
 import { CollaborationPanel } from "@/components/CollaborationPanel";
-import { PerformancePanel } from "@/components/PerformancePanel";
-import { GitPanel } from "@/components/GitPanel";
-import { EducationalHub } from "@/components/EducationalHub";
 import { FeedbackSection } from "@/components/FeedbackSection";
 import { DeveloperTools } from "@/components/DeveloperTools";
-import { SettingsPanel } from "@/components/SettingsPanel";
-import { AdvancedFeatures } from "@/components/AdvancedFeatures";
-import { IntegrationDeployment } from "@/components/IntegrationDeployment";
-import { LearningFeatures } from "@/components/LearningFeatures";
+import { LayoutManager } from "@/components/LayoutManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useProgressiveLoading } from "@/hooks/useProgressiveLoading";
 import { useCodeCache } from "@/hooks/useCodeCache";
-import { useResponsive } from "@/hooks/useResponsive";
 import { Progress } from "@/components/ui/progress";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAppStore } from "@/store/useAppStore";
 import { Terminal } from "@/components/Terminal";
+import { Github, PlayCircle, Rocket, Compass, ListChecks, Bug, Sparkles, Workflow } from "lucide-react";
 
 // Memoized loading component
 const LoadingScreen = memo(({ progress }: { progress: number }) => (
@@ -33,9 +27,9 @@ const LoadingScreen = memo(({ progress }: { progress: number }) => (
     <Card className="w-full max-w-md">
       <CardContent className="p-6 space-y-4">
         <div className="text-center">
-          <h2 className="text-lg font-semibold mb-2">Loading Code Editor</h2>
+          <h2 className="text-lg font-semibold mb-2">Warming up Sensei Splinter</h2>
           <p className="text-sm text-muted-foreground mb-4">
-            Initializing components and features...
+            Initializing mentor systems and workspace...
           </p>
         </div>
         <Progress value={progress} className="h-2" />
@@ -47,55 +41,61 @@ const LoadingScreen = memo(({ progress }: { progress: number }) => (
   </div>
 ));
 
-LoadingScreen.displayName = 'LoadingScreen';
+LoadingScreen.displayName = "LoadingScreen";
+
+type NavigatorTab = "steps" | "guidance" | "collab" | "systems" | "feedback";
+type WorkflowStepType = "plan" | "analysis" | "build" | "debug" | "ship";
+
+interface WorkflowStep {
+  id: string;
+  label: string;
+  description: string;
+  type: WorkflowStepType;
+  action: string;
+}
 
 const Index = () => {
-  // Use Zustand store for global state
   const {
     currentCode,
     currentLanguage,
     currentProject,
     roomId,
     userId,
-    feedbackTabValue,
-    layoutSettings,
     setCurrentCode,
     setCurrentLanguage,
     setCurrentProject,
     setRoomId,
     setUserId,
-    setFeedbackTabValue,
     updatePerformanceMetrics,
     addError
   } = useAppStore();
-  
+
   const { isLoading, simulateLoading, overallProgress } = useProgressiveLoading();
   const { saveToCache } = useCodeCache();
-  const { isMobile, isDesktop } = useResponsive();
+  const [navigatorTab, setNavigatorTab] = useState<NavigatorTab>("steps");
+  const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({});
 
   // Initialize room ID from URL params or generate new one
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const paramRoomId = urlParams.get('room');
+    const paramRoomId = urlParams.get("room");
     if (paramRoomId) {
       setRoomId(paramRoomId);
     } else {
       const newRoomId = Math.random().toString(36).substring(2, 10);
       setRoomId(newRoomId);
-      window.history.replaceState({}, '', `?room=${newRoomId}`);
+      window.history.replaceState({}, "", `?room=${newRoomId}`);
     }
 
-    // Initialize userId if not set
     if (!userId) {
       setUserId(Math.random().toString(36).substring(2, 10));
     }
 
-    // Track performance metrics
     const startTime = performance.now();
     const observer = new PerformanceObserver((list) => {
       const entries = list.getEntries();
       entries.forEach((entry) => {
-        if (entry.entryType === 'measure') {
+        if (entry.entryType === "measure") {
           updatePerformanceMetrics({
             renderTime: entry.duration,
             loadTime: performance.now() - startTime
@@ -103,61 +103,115 @@ const Index = () => {
         }
       });
     });
-    observer.observe({ entryTypes: ['measure'] });
+    observer.observe({ entryTypes: ["measure"] });
 
     return () => observer.disconnect();
   }, [setRoomId, setUserId, userId, updatePerformanceMetrics]);
 
-  // Start progressive loading
   useEffect(() => {
     const loadingTimer = setTimeout(() => {
-      simulateLoading().catch((error) => {
-        addError('Failed to complete loading sequence', 'progressive-loading');
-      });
+      simulateLoading().catch(() => addError("Failed to complete loading sequence", "progressive-loading"));
     }, 100);
 
     return () => clearTimeout(loadingTimer);
   }, [simulateLoading, addError]);
 
-  // Memoized handlers to prevent unnecessary re-renders
+  const workflowSteps: WorkflowStep[] = useMemo(() => {
+    const projectName = currentProject || "your current focus";
+    return [
+      {
+        id: "context",
+        label: "Clarify Objective",
+        description: `Review the goal for ${projectName} and confirm constraints.`,
+        type: "plan",
+        action: "Summarize requirement"
+      },
+      {
+        id: "analysis",
+        label: "Inspect Code & Signals",
+        description: `Scan current ${currentLanguage} code and note blockers or risks.`,
+        type: "analysis",
+        action: "Run quick review"
+      },
+      {
+        id: "implement",
+        label: "Apply Change",
+        description: "Edit the workspace with the mentor's recommendation.",
+        type: "build",
+        action: "Open workspace"
+      },
+      {
+        id: "verify",
+        label: "Verify & Debug",
+        description: "Execute tests/output to be sure the change worked.",
+        type: "debug",
+        action: "Run check"
+      },
+      {
+        id: "handoff",
+        label: "Document & Ship",
+        description: "Summarize what changed and record next steps.",
+        type: "ship",
+        action: "Summarize outcome"
+      }
+    ];
+  }, [currentProject, currentLanguage]);
+
+  useEffect(() => {
+    setCompletedSteps({});
+  }, [currentProject, currentLanguage]);
+
+  const completedCount = useMemo(
+    () => workflowSteps.filter((step) => completedSteps[step.id]).length,
+    [workflowSteps, completedSteps]
+  );
+
+  const navigatorProgress = workflowSteps.length ? (completedCount / workflowSteps.length) * 100 : 0;
+
+  const scrollToNavigator = () => {
+    const panel = document.getElementById("navigator-panel");
+    if (panel) {
+      panel.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const goToTab = useCallback((tab: NavigatorTab) => {
+    setNavigatorTab(tab);
+    requestAnimationFrame(scrollToNavigator);
+  }, []);
+
   const handleRunCode = useCallback((code: string, language: string) => {
     try {
       setCurrentCode(code);
       setCurrentLanguage(language);
-      
-      // Cache the code
       saveToCache(`${Date.now()}`, language, code, `untitled.${getFileExtension(language)}`);
     } catch (error) {
-      addError('Failed to run code', 'code-execution');
+      addError("Failed to run code", "code-execution");
     }
   }, [setCurrentCode, setCurrentLanguage, saveToCache, addError]);
 
-  const handleShareRoom = useCallback((roomId: string) => {
+  const handleShareRoom = useCallback((newRoomId: string) => {
     try {
-      window.history.replaceState({}, '', `?room=${roomId}`);
+      window.history.replaceState({}, "", `?room=${newRoomId}`);
     } catch (error) {
-      addError('Failed to update URL', 'room-sharing');
+      addError("Failed to update URL", "room-sharing");
     }
   }, [addError]);
 
   const getFileExtension = useCallback((language: string) => {
     const extensions: Record<string, string> = {
-      javascript: 'js',
-      typescript: 'ts',
-      python: 'py',
-      java: 'java',
-      cpp: 'cpp',
-      c: 'c',
-      html: 'html',
-      css: 'css',
-      sql: 'sql',
+      javascript: "js",
+      typescript: "ts",
+      python: "py",
+      java: "java",
+      cpp: "cpp",
+      c: "c",
+      html: "html",
+      css: "css",
+      sql: "sql",
     };
-    return extensions[language] || 'txt';
+    return extensions[language] || "txt";
   }, []);
-
-  const handleFeedbackClick = useCallback(() => {
-    setFeedbackTabValue("feedback");
-  }, [setFeedbackTabValue]);
 
   const handleCodeChange = useCallback((code: string) => {
     setCurrentCode(code);
@@ -171,58 +225,115 @@ const Index = () => {
     setCurrentProject(project);
   }, [setCurrentProject]);
 
-  const handleSettingsClick = useCallback(() => {
-    setFeedbackTabValue("layout");
-  }, [setFeedbackTabValue]);
+  const handleStepToggle = (id: string) => {
+    setCompletedSteps((prev) => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
 
-  // Show loading screen while initializing
   if (isLoading) {
     return <LoadingScreen progress={overallProgress} />;
   }
 
   return (
-    <div className="min-h-screen w-full bg-background">
+    <div className="min-h-screen bg-background">
       <Header 
         currentProject={currentProject} 
-        onFeedbackClick={handleFeedbackClick}
-        onSettingsClick={handleSettingsClick}
+        onFeedbackClick={() => goToTab("feedback")}
+        onSettingsClick={() => goToTab("systems")}
       />
-      
-      <div className="h-[calc(100vh-4rem)] w-full">
-        <ResizablePanelGroup direction="horizontal" className="h-full">
-          {/* File Explorer Panel */}
-          {layoutSettings.showExplorer && (
-            <>
-              <ResizablePanel 
-                defaultSize={layoutSettings.explorerWidth} 
-                minSize={10} 
-                maxSize={40}
-                className="min-w-0"
-              >
-                <div className="h-full p-2 border-r">
-                  <ErrorBoundary>
-                    <FileExplorer />
-                  </ErrorBoundary>
-                </div>
-              </ResizablePanel>
-              <ResizableHandle withHandle />
-            </>
-          )}
 
-          {/* Main Editor Area */}
-          <ResizablePanel 
-            defaultSize={layoutSettings.editorWidth} 
-            minSize={30}
-            className="min-w-0"
-          >
-            <ResizablePanelGroup direction="vertical" className="h-full">
-              {/* Code Editor */}
-              <ResizablePanel 
-                defaultSize={layoutSettings.editorHeight} 
-                minSize={30}
-                className="min-h-0"
-              >
-                <div className="h-full p-2 pb-1">
+      <div className="px-4 py-6 space-y-6 lg:px-8">
+        <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+          <Badge variant="outline" className="bg-primary/5 text-primary">Mentor Workspace</Badge>
+          <span>Guidance-first • Workflow-aware • AI companion</span>
+        </div>
+
+        <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)_320px]">
+          {/* Mentor Column */}
+          <div className="space-y-4" id="mentor-panel">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Sensei Splinter</span>
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    <Sparkles className="h-3 w-3" />
+                    Online
+                  </Badge>
+                </CardTitle>
+                <CardDescription>
+                  Your technical mentor actively watches the workspace and keeps you unblocked.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex flex-wrap gap-2 text-sm">
+                  <Badge variant="outline">{currentLanguage.toUpperCase()} focus</Badge>
+                  <Badge variant="outline">{currentProject || "No project linked"}</Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">Mentor Confidence</p>
+                    <p className="text-lg font-semibold">High</p>
+                  </div>
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground">Last Insight</p>
+                    <p className="text-lg font-semibold">moments ago</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={() => goToTab("steps")}>
+                    <Workflow className="h-4 w-4 mr-2" />
+                    View Navigator
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => goToTab("guidance")}>
+                    <Compass className="h-4 w-4 mr-2" />
+                    Guidance
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="rounded-2xl border bg-card shadow-sm h-[calc(100vh-18rem)] min-h-[500px] overflow-hidden">
+              <ErrorBoundary>
+                <AIChatMentor 
+                  currentCode={currentCode}
+                  currentProject={currentProject}
+                />
+              </ErrorBoundary>
+            </div>
+          </div>
+
+          {/* Workspace Column */}
+          <div className="space-y-4" id="workspace-panel">
+            <Card>
+              <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <CardTitle>Workspace</CardTitle>
+                  <CardDescription>
+                    Keep edits focused—Sensei Splinter is monitoring every change.
+                  </CardDescription>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={() => goToTab("collab")}>
+                    <Github className="mr-2 h-4 w-4" />
+                    Share Room
+                  </Button>
+                  <Button size="sm" onClick={() => handleRunCode(currentCode, currentLanguage)}>
+                    <PlayCircle className="mr-2 h-4 w-4" />
+                    Run
+                  </Button>
+                </div>
+              </CardHeader>
+            </Card>
+
+            <Card className="overflow-hidden">
+              <div className="border-b bg-muted/40 px-4 py-2 text-xs uppercase tracking-wide text-muted-foreground flex items-center justify-between">
+                <span>Editor</span>
+                <span>Mode • Build</span>
+              </div>
+              <CardContent className="p-0">
+                <div className="h-[480px]">
                   <ErrorBoundary>
                     <MultiTabCodeEditor 
                       onCodeChange={handleCodeChange} 
@@ -231,83 +342,134 @@ const Index = () => {
                     />
                   </ErrorBoundary>
                 </div>
-              </ResizablePanel>
-              
-              <ResizableHandle withHandle />
-              
-              {/* Output Console & Terminal */}
-              <ResizablePanel 
-                defaultSize={layoutSettings.consoleHeight} 
-                minSize={20}
-                className="min-h-0"
-              >
-                <div className="h-full p-2 pt-1">
-                  <Tabs defaultValue="output" className="h-full flex flex-col">
-                    <TabsList className="w-full justify-start bg-muted/50">
-                      <TabsTrigger value="output">Output</TabsTrigger>
-                      <TabsTrigger value="terminal">Terminal</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="output" className="flex-1 mt-2 overflow-hidden">
-                      <ErrorBoundary>
-                        <EnhancedOutputConsole 
-                          currentCode={currentCode} 
-                          currentLanguage={currentLanguage}
-                        />
-                      </ErrorBoundary>
-                    </TabsContent>
-                    <TabsContent value="terminal" className="flex-1 mt-0 overflow-hidden">
-                      <ErrorBoundary>
-                        <Terminal />
-                      </ErrorBoundary>
-                    </TabsContent>
-                  </Tabs>
-                </div>
-              </ResizablePanel>
-            </ResizablePanelGroup>
-          </ResizablePanel>
+              </CardContent>
+            </Card>
 
-          {/* Right Sidebar */}
-          {layoutSettings.showSidebar && (
-            <>
-              <ResizableHandle withHandle />
-              <ResizablePanel 
-                defaultSize={layoutSettings.sidebarWidth} 
-                minSize={15} 
-                maxSize={50}
-                className="min-w-0"
-              >
-                <div className="h-full border-l">
-                  <Tabs value={feedbackTabValue} onValueChange={setFeedbackTabValue} className="h-full flex flex-col">
-                    <div className="p-2 pb-0">
-                      <TabsList className="grid w-full grid-cols-8 text-xs">
-                        <TabsTrigger value="guidance" className="text-[10px] lg:text-xs">Guide</TabsTrigger>
-                        <TabsTrigger value="mentor" className="text-[10px] lg:text-xs">AI</TabsTrigger>
-                        <TabsTrigger value="learn" className="text-[10px] lg:text-xs">Learn</TabsTrigger>
-                        <TabsTrigger value="mentorship" className="text-[10px] lg:text-xs">Mentor</TabsTrigger>
-                        <TabsTrigger value="devtools" className="text-[10px] lg:text-xs">Tools</TabsTrigger>
-                        <TabsTrigger value="advanced" className="text-[10px] lg:text-xs">Advanced</TabsTrigger>
-                        <TabsTrigger value="deploy" className="text-[10px] lg:text-xs">Deploy</TabsTrigger>
-                        <TabsTrigger value="settings" className="text-[10px] lg:text-xs">Settings</TabsTrigger>
-                      </TabsList>
-                    </div>
-                    
-                    <div className="flex-1 p-2 overflow-hidden">
-                      <TabsContent value="guidance" className="h-full mt-0">
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Card className="overflow-hidden">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Output Review</CardTitle>
+                  <CardDescription>Sensei watches the console and calls out what matters.</CardDescription>
+                </CardHeader>
+                <CardContent className="h-[260px]">
+                  <ErrorBoundary>
+                    <EnhancedOutputConsole 
+                      currentCode={currentCode} 
+                      currentLanguage={currentLanguage}
+                    />
+                  </ErrorBoundary>
+                </CardContent>
+              </Card>
+
+              <Card className="overflow-hidden">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">Command Console</CardTitle>
+                  <CardDescription>Run scripts, tests, and deployment commands.</CardDescription>
+                </CardHeader>
+                <CardContent className="h-[260px]">
+                  <ErrorBoundary>
+                    <Terminal />
+                  </ErrorBoundary>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Navigator Column */}
+          <div className="space-y-4" id="navigator-panel">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  Navigator
+                  <Badge variant="outline">
+                    {completedCount}/{workflowSteps.length} steps
+                  </Badge>
+                </CardTitle>
+                <CardDescription>
+                  Every workflow stays visible—no surprises, no aimless coding.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Progress value={navigatorProgress} />
+                <div className="text-xs text-muted-foreground">
+                  {navigatorProgress === 0
+                    ? "Start with the objective so Sensei can keep you aligned."
+                    : navigatorProgress === 100
+                      ? "Navigator is satisfied. Document the outcome or pick a new task."
+                      : "Keep following the steps or ask the mentor for deeper context."}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="h-[calc(100vh-18rem)] min-h-[500px]">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Workflow Control</CardTitle>
+                <CardDescription>Switch between Navigator, guidance, collaboration, and systems.</CardDescription>
+              </CardHeader>
+              <CardContent className="h-full p-0 flex flex-col">
+                <Tabs value={navigatorTab} onValueChange={(value) => setNavigatorTab(value as NavigatorTab)} className="flex flex-col h-full">
+                  <div className="px-4">
+                    <TabsList className="grid w-full grid-cols-5 text-xs">
+                      <TabsTrigger value="steps">Steps</TabsTrigger>
+                      <TabsTrigger value="guidance">Guide</TabsTrigger>
+                      <TabsTrigger value="collab">Collab</TabsTrigger>
+                      <TabsTrigger value="systems">Systems</TabsTrigger>
+                      <TabsTrigger value="feedback">Feedback</TabsTrigger>
+                    </TabsList>
+                  </div>
+
+                  <div className="flex-1 overflow-hidden">
+                    <TabsContent value="steps" className="h-full mt-0">
+                      <ScrollArea className="h-full px-4 pb-4">
+                        <div className="space-y-3">
+                          {workflowSteps.map((step) => {
+                            const Icon = step.type === "plan"
+                              ? Compass
+                              : step.type === "analysis"
+                                ? Sparkles
+                                : step.type === "build"
+                                  ? ListChecks
+                                  : step.type === "debug"
+                                    ? Bug
+                                    : Rocket;
+
+                            return (
+                              <Card key={step.id} className={`border-l-4 ${completedSteps[step.id] ? "border-l-primary" : "border-l-muted"}`}>
+                                <CardContent className="p-4 space-y-3">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                      <Icon className="h-4 w-4 text-primary" />
+                                      <div>
+                                        <p className="text-sm font-semibold">{step.label}</p>
+                                        <p className="text-xs text-muted-foreground">{step.description}</p>
+                                      </div>
+                                    </div>
+                                    <Button size="sm" variant={completedSteps[step.id] ? "secondary" : "outline"} onClick={() => handleStepToggle(step.id)}>
+                                      {completedSteps[step.id] ? "Done" : "Mark done"}
+                                    </Button>
+                                  </div>
+                                  <Button variant="ghost" size="sm" className="w-full justify-start text-xs" onClick={() => goToTab("guidance")}>
+                                    <Workflow className="mr-2 h-3 w-3" />
+                                    {step.action}
+                                  </Button>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                      </ScrollArea>
+                    </TabsContent>
+
+                    <TabsContent value="guidance" className="h-full mt-0">
+                      <div className="h-full px-4 pb-4">
                         <ErrorBoundary>
                           <ProjectGuidance onProjectSelect={handleProjectSelect} />
                         </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="mentor" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <AIChatMentor 
-                            currentCode={currentCode}
-                            currentProject={currentProject}
-                          />
-                        </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="collab" className="h-full mt-0">
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="collab" className="h-full mt-0">
+                      <div className="h-full px-4 pb-4">
                         <ErrorBoundary>
                           <CollaborationPanel 
                             roomId={roomId}
@@ -315,81 +477,39 @@ const Index = () => {
                             onShareRoom={handleShareRoom}
                           />
                         </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="perf" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <PerformancePanel />
-                        </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="git" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <GitPanel />
-                        </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="learn" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <EducationalHub 
-                            onCodeUpdate={handleRunCode}
-                            currentCode={currentCode}
-                            currentLanguage={currentLanguage}
-                          />
-                        </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="mentorship" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <LearningFeatures onCodeUpdate={handleRunCode} />
-                        </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="devtools" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <DeveloperTools />
-                        </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="advanced" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <AdvancedFeatures />
-                        </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="deploy" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <IntegrationDeployment />
-                        </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="settings" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <SettingsPanel />
-                        </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="feedback" className="h-full mt-0">
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="systems" className="h-full mt-0">
+                      <ScrollArea className="h-full px-4 pb-4 space-y-4">
+                        <div className="space-y-4">
+                          <ErrorBoundary>
+                            <LayoutManager />
+                          </ErrorBoundary>
+                          <ErrorBoundary>
+                            <DeveloperTools />
+                          </ErrorBoundary>
+                        </div>
+                      </ScrollArea>
+                    </TabsContent>
+
+                    <TabsContent value="feedback" className="h-full mt-0">
+                      <ScrollArea className="h-full px-4 pb-4">
                         <ErrorBoundary>
                           <FeedbackSection />
                         </ErrorBoundary>
-                      </TabsContent>
-                      
-                      <TabsContent value="layout" className="h-full mt-0">
-                        <ErrorBoundary>
-                          <LayoutManager />
-                        </ErrorBoundary>
-                      </TabsContent>
-                    </div>
-                  </Tabs>
-                </div>
-              </ResizablePanel>
-            </>
-          )}
-        </ResizablePanelGroup>
+                      </ScrollArea>
+                    </TabsContent>
+                  </div>
+                </Tabs>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
 };
 
 export default Index;
+
