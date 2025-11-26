@@ -25,7 +25,7 @@ serve(async (req) => {
         try {
           output = await simulatePythonExecution(code);
         } catch (e) {
-          error = `Python execution error: ${e.message}`;
+          error = `Python execution error: ${e instanceof Error ? e.message : 'Unknown error'}`;
         }
         break;
 
@@ -33,7 +33,7 @@ serve(async (req) => {
         try {
           output = await simulateJavaScriptExecution(code);
         } catch (e) {
-          error = `JavaScript execution error: ${e.message}`;
+          error = `JavaScript execution error: ${e instanceof Error ? e.message : 'Unknown error'}`;
         }
         break;
 
@@ -41,7 +41,7 @@ serve(async (req) => {
         try {
           output = await simulateJavaExecution(code);
         } catch (e) {
-          error = `Java execution error: ${e.message}`;
+          error = `Java execution error: ${e instanceof Error ? e.message : 'Unknown error'}`;
         }
         break;
 
@@ -49,7 +49,7 @@ serve(async (req) => {
         try {
           output = await simulateCExecution(code);
         } catch (e) {
-          error = `C execution error: ${e.message}`;
+          error = `C execution error: ${e instanceof Error ? e.message : 'Unknown error'}`;
         }
         break;
 
@@ -57,7 +57,7 @@ serve(async (req) => {
         try {
           output = await simulateHTMLExecution(code);
         } catch (e) {
-          error = `HTML execution error: ${e.message}`;
+          error = `HTML execution error: ${e instanceof Error ? e.message : 'Unknown error'}`;
         }
         break;
 
@@ -65,7 +65,7 @@ serve(async (req) => {
         try {
           output = await simulateCSSExecution(code);
         } catch (e) {
-          error = `CSS execution error: ${e.message}`;
+          error = `CSS execution error: ${e instanceof Error ? e.message : 'Unknown error'}`;
         }
         break;
 

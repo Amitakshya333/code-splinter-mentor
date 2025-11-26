@@ -90,7 +90,7 @@ Focus on making the code production-ready while maintaining its original functio
     });
   } catch (error) {
     console.error('Error in ai-fix-code function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

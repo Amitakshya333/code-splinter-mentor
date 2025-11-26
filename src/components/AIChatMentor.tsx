@@ -44,6 +44,7 @@ export const AIChatMentor = ({ currentCode = "", currentProject }: AIChatMentorP
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
   const { toast } = useToast();
 
   const handleSendMessage = async () => {
@@ -77,6 +78,10 @@ export const AIChatMentor = ({ currentCode = "", currentProject }: AIChatMentorP
     setInput("");
     setIsLoading(true);
 
+    // Create abort controller for this request
+    const controller = new AbortController();
+    setAbortController(controller);
+
     // Create placeholder assistant message that will be updated
     const assistantId = (Date.now() + 1).toString();
     const assistantMessage: ChatMessage = {
@@ -108,6 +113,7 @@ export const AIChatMentor = ({ currentCode = "", currentProject }: AIChatMentorP
           })),
           code: currentCode
         }),
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -171,9 +177,30 @@ export const AIChatMentor = ({ currentCode = "", currentProject }: AIChatMentorP
 
       console.log('Streaming completed');
       setIsLoading(false);
+      setAbortController(null);
       
     } catch (error) {
       console.error('Error sending message:', error);
+      
+      // Handle abort gracefully
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Request aborted by user');
+        setMessages(prev => 
+          prev.map(msg => 
+            msg.id === assistantId 
+              ? { 
+                  ...msg, 
+                  content: msg.content + '\n\n_[Response stopped by user]_',
+                  category: "guidance"
+                }
+              : msg
+          )
+        );
+        setIsLoading(false);
+        setAbortController(null);
+        return;
+      }
+      
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       
       toast({
@@ -198,6 +225,17 @@ export const AIChatMentor = ({ currentCode = "", currentProject }: AIChatMentorP
       // Restore the input so user can try again
       setInput(currentInput);
       setIsLoading(false);
+      setAbortController(null);
+    }
+  };
+
+  const handleStopGeneration = () => {
+    if (abortController) {
+      abortController.abort();
+      toast({
+        title: "Stopping generation",
+        description: "AI response stopped",
+      });
     }
   };
 
@@ -314,12 +352,19 @@ export const AIChatMentor = ({ currentCode = "", currentProject }: AIChatMentorP
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask your coding mentor anything..."
-            onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+            onKeyPress={(e) => e.key === "Enter" && !isLoading && handleSendMessage()}
             className="flex-1"
+            disabled={isLoading}
           />
-          <Button onClick={handleSendMessage} disabled={!input.trim() || isLoading}>
-            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-          </Button>
+          {isLoading ? (
+            <Button onClick={handleStopGeneration} variant="destructive">
+              Stop
+            </Button>
+          ) : (
+            <Button onClick={handleSendMessage} disabled={!input.trim()}>
+              <Send className="w-4 h-4" />
+            </Button>
+          )}
         </div>
         
         {/* Mentor Mode Suggestions */}

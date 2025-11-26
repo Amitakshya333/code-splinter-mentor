@@ -117,9 +117,11 @@ Guidelines for your responses:
     console.error('Error in gemini-chat function:', error);
     
     // Provide user-friendly error messages
-    const errorMessage = error.message?.includes('fetch') 
-      ? 'Network error. Please check your connection and try again.'
-      : error.message || 'An unexpected error occurred. Please try again.';
+    const errorMessage = error instanceof Error
+      ? (error.message?.includes('fetch') 
+        ? 'Network error. Please check your connection and try again.'
+        : error.message || 'An unexpected error occurred. Please try again.')
+      : 'An unexpected error occurred. Please try again.';
     
     return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
