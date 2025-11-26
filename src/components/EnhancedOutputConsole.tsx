@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -18,7 +19,8 @@ import {
   AlertCircle,
   CheckCircle,
   Info,
-  Download
+  Download,
+  FileDown
 } from "lucide-react";
 
 interface OutputEntry {
@@ -173,17 +175,93 @@ export function EnhancedOutputConsole({ currentCode = "", currentLanguage = "pyt
     }
   };
 
-  const downloadOutput = () => {
+  const downloadOutput = (format: 'txt' | 'json' | 'csv' | 'html' = 'txt') => {
     const filteredOutput = getFilteredOutput();
-    const textContent = filteredOutput
-      .map(entry => `[${entry.timestamp.toLocaleTimeString()}] [${entry.type.toUpperCase()}] ${entry.content}`)
-      .join('\n');
+    let content = '';
+    let mimeType = 'text/plain';
+    let extension = 'txt';
 
-    const blob = new Blob([textContent], { type: "text/plain" });
+    switch (format) {
+      case 'json':
+        content = JSON.stringify(filteredOutput.map(entry => ({
+          timestamp: entry.timestamp.toISOString(),
+          type: entry.type,
+          language: entry.language,
+          content: entry.content,
+          executionTime: entry.executionTime
+        })), null, 2);
+        mimeType = 'application/json';
+        extension = 'json';
+        break;
+      
+      case 'csv':
+        const headers = 'Timestamp,Type,Language,Execution Time (ms),Content\n';
+        const rows = filteredOutput.map(entry => {
+          const timestamp = entry.timestamp.toISOString();
+          const content = entry.content.replace(/"/g, '""'); // Escape quotes
+          const execTime = entry.executionTime || '';
+          return `"${timestamp}","${entry.type}","${entry.language}","${execTime}","${content}"`;
+        }).join('\n');
+        content = headers + rows;
+        mimeType = 'text/csv';
+        extension = 'csv';
+        break;
+      
+      case 'html':
+        content = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Console Output - ${new Date().toLocaleString()}</title>
+  <style>
+    body { font-family: 'Segoe UI', system-ui, sans-serif; padding: 20px; background: #f5f5f5; }
+    .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    h1 { color: #333; border-bottom: 2px solid #667eea; padding-bottom: 10px; }
+    .entry { padding: 12px; margin: 8px 0; border-left: 4px solid #ccc; background: #fafafa; border-radius: 4px; }
+    .entry.output { border-left-color: #10b981; }
+    .entry.error { border-left-color: #ef4444; background: #fef2f2; }
+    .entry.info { border-left-color: #3b82f6; }
+    .meta { font-size: 0.85em; color: #666; margin-bottom: 6px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75em; margin-right: 8px; background: #e5e7eb; }
+    .content { white-space: pre-wrap; font-family: 'Courier New', monospace; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Console Output Report</h1>
+    <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+    <p><strong>Total Entries:</strong> ${filteredOutput.length}</p>
+    <hr>
+    ${filteredOutput.map(entry => `
+    <div class="entry ${entry.type}">
+      <div class="meta">
+        <span class="badge">${entry.timestamp.toLocaleString()}</span>
+        <span class="badge">${entry.type.toUpperCase()}</span>
+        <span class="badge">${entry.language}</span>
+        ${entry.executionTime ? `<span class="badge">${entry.executionTime}ms</span>` : ''}
+      </div>
+      <div class="content">${entry.content.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+    </div>
+    `).join('')}
+  </div>
+</body>
+</html>`;
+        mimeType = 'text/html';
+        extension = 'html';
+        break;
+      
+      default:
+        content = filteredOutput
+          .map(entry => `[${entry.timestamp.toLocaleString()}] [${entry.type.toUpperCase()}] ${entry.content}`)
+          .join('\n');
+    }
+
+    const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `console-output-${new Date().toISOString().split('T')[0]}.txt`;
+    a.download = `console-output-${new Date().toISOString().split('T')[0]}.${extension}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -191,7 +269,7 @@ export function EnhancedOutputConsole({ currentCode = "", currentLanguage = "pyt
 
     toast({
       title: "Output Downloaded! 💾",
-      description: "Console output saved to file",
+      description: `Console output saved as ${extension.toUpperCase()} file`,
     });
   };
 
@@ -269,17 +347,36 @@ export function EnhancedOutputConsole({ currentCode = "", currentLanguage = "pyt
               {isLoading ? "Running..." : "Run"}
             </Button>
 
-            <Button 
-              onClick={() => {
-                console.log('Download Output button clicked');
-                downloadOutput();
-              }}
-              size="sm" 
-              variant="outline"
-              title="Download output"
-            >
-              <Download className="h-4 w-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  title="Download output in multiple formats"
+                >
+                  <FileDown className="h-4 w-4 mr-1" />
+                  Export
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => downloadOutput('txt')}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Text (.txt)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => downloadOutput('json')}>
+                  <Download className="h-4 w-4 mr-2" />
+                  JSON (.json)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => downloadOutput('csv')}>
+                  <Download className="h-4 w-4 mr-2" />
+                  CSV (.csv)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => downloadOutput('html')}>
+                  <Download className="h-4 w-4 mr-2" />
+                  HTML Report (.html)
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             <Button 
               onClick={() => {

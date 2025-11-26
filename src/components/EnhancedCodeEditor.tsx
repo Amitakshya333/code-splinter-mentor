@@ -308,6 +308,23 @@ export function EnhancedCodeEditor({ onCodeChange, onLanguageChange, onRun }: En
     }
   }, [selectedLanguage]);
 
+  // Keyboard shortcut: Ctrl+Enter or Cmd+Enter to run code
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+        event.preventDefault();
+        handleRun();
+        toast({
+          title: "Code Execution Started",
+          description: "Running code via keyboard shortcut",
+        });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [code, selectedLanguage]);
+
   useEffect(() => {
     loadSavedSnippets();
   }, []);
