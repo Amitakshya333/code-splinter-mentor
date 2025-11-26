@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { 
   Play, 
   Copy, 
@@ -281,6 +283,14 @@ export function EnhancedCodeEditor({ onCodeChange, onLanguageChange, onRun }: En
   const [selectedLanguage, setSelectedLanguage] = useState<string>("python");
   const [code, setCode] = useState<string>("");
   const [isFixing, setIsFixing] = useState(false);
+  const [isFixPanelOpen, setIsFixPanelOpen] = useState(false);
+  const [fixTab, setFixTab] = useState<"problems" | "fix" | "explain">("problems");
+  const [originalCodeBeforeFix, setOriginalCodeBeforeFix] = useState<string | null>(null);
+  const [lastFixResult, setLastFixResult] = useState<{
+    fixedCode: string;
+    changes?: string[];
+    suggestions?: string[];
+  } | null>(null);
   const [savedSnippets, setSavedSnippets] = useState<CodeSnippet[]>([]);
   const [showSnippets, setShowSnippets] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -356,12 +366,24 @@ export function EnhancedCodeEditor({ onCodeChange, onLanguageChange, onRun }: En
     onCodeChange?.(codeValue);
   };
 
+  const handleApplyFix = () => {
+    if (!lastFixResult) return;
+    setCode(lastFixResult.fixedCode);
+    onCodeChange?.(lastFixResult.fixedCode);
+    setIsFixPanelOpen(false);
+
+    toast({
+      title: "Fix applied",
+      description: "AI changes have been applied to your code. Double-check before shipping.",
+    });
+  };
+
   const handleRun = () => {
     if (onRun) {
       onRun(code, selectedLanguage);
     }
   };
-
+  
   const handleFixCode = async () => {
     if (!code.trim()) {
       toast({
@@ -373,6 +395,10 @@ export function EnhancedCodeEditor({ onCodeChange, onLanguageChange, onRun }: En
     }
 
     setIsFixing(true);
+    setOriginalCodeBeforeFix(code);
+    setLastFixResult(null);
+    setFixTab("problems");
+
     try {
       const { data, error } = await supabase.functions.invoke('ai-fix-code', {
         body: { code, language: selectedLanguage }
@@ -380,19 +406,30 @@ export function EnhancedCodeEditor({ onCodeChange, onLanguageChange, onRun }: En
 
       if (error) throw error;
 
-      setCode(data.fixedCode);
-      onCodeChange?.(data.fixedCode);
+      const result = {
+        fixedCode: data.fixedCode as string,
+        changes: (data.changes as string[] | undefined) || [],
+        suggestions: (data.suggestions as string[] | undefined) || [],
+      };
+
+      setLastFixResult(result);
+      setIsFixPanelOpen(true);
 
       toast({
-        title: "Code Enhanced! 🚀",
-        description: `Applied ${data.changes?.length || 0} improvements`,
+        title: "Analysis complete",
+        description: `Sensei Splinter found ${result.changes?.length || 0} potential improvements`,
         variant: "default",
       });
     } catch (error) {
       console.error('Error fixing code:', error);
+      const message =
+        (error as any)?.message ||
+        (error as any)?.error ||
+        "Could not enhance the code. Please try again later.";
+
       toast({
         title: "AI Fix Failed",
-        description: "Could not enhance the code. Please try again.",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -942,6 +979,78 @@ export default UserProfile;
 
   return (
     <div className="space-y-4">
+      {/* AI Fix Result Panel */}
+      <Sheet open={isFixPanelOpen} onOpenChange={setIsFixPanelOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-xl">
+          <SheetHeader>
+            <SheetTitle>AI Fix Results</SheetTitle>
+          </SheetHeader>
+
+          <div className="mt-4">
+            <Tabs value={fixTab} onValueChange={(v) => setFixTab(v as typeof fixTab)}>
+              <TabsList className="grid grid-cols-3 mb-4">
+                <TabsTrigger value="problems">Problems</TabsTrigger>
+                <TabsTrigger value="fix">Suggested Fix</TabsTrigger>
+                <TabsTrigger value="explain">Explain</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="problems" className="space-y-3">
+                {!lastFixResult || (lastFixResult.changes?.length ?? 0) === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No specific problems were highlighted. Your code may already be in good shape.
+                  </p>
+                ) : (
+                  <ul className="space-y-2 text-sm">
+                    {lastFixResult.changes!.map((change, idx) => (
+                      <li key={idx} className="rounded-md border px-3 py-2">
+                        <span className="font-medium">Issue {idx + 1}:</span>{" "}
+                        <span className="text-muted-foreground">{change}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </TabsContent>
+
+              <TabsContent value="fix" className="space-y-3">
+                {originalCodeBeforeFix && lastFixResult ? (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      Review the suggested changes below. When ready, click <span className="font-semibold">Apply fix</span>.
+                    </p>
+                    <div className="rounded-md border bg-muted p-3 text-xs font-mono overflow-auto max-h-64 whitespace-pre-wrap">
+                      {lastFixResult.fixedCode}
+                    </div>
+                    <Button onClick={handleApplyFix} className="w-full">
+                      Apply fix
+                    </Button>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No fix is available yet. Run AI Fix on your code first.
+                  </p>
+                )}
+              </TabsContent>
+
+              <TabsContent value="explain" className="space-y-3">
+                {lastFixResult?.suggestions && lastFixResult.suggestions.length > 0 ? (
+                  <ul className="space-y-2 text-sm">
+                    {lastFixResult.suggestions.map((text, idx) => (
+                      <li key={idx} className="rounded-md border px-3 py-2">
+                        {text}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    The assistant didn't return a detailed explanation. Try asking the chat mentor to explain this code.
+                  </p>
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
+        </SheetContent>
+      </Sheet>
+
       {/* Header Controls */}
       <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-card rounded-lg border">
         <div className="flex items-center gap-3">

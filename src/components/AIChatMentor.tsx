@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 import { 
   Bot, 
   User, 
@@ -14,7 +15,10 @@ import {
   Code, 
   BookOpen,
   Zap,
-  Loader2
+  Loader2,
+  Maximize2,
+  Minimize2,
+  CircleStop
 } from "lucide-react";
 
 interface ChatMessage {
@@ -44,7 +48,9 @@ export const AIChatMentor = ({ currentCode = "", currentProject }: AIChatMentorP
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
+  const [activeAssistantId, setActiveAssistantId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleSendMessage = async () => {
@@ -92,6 +98,7 @@ export const AIChatMentor = ({ currentCode = "", currentProject }: AIChatMentorP
       category: "explanation"
     };
     setMessages(prev => [...prev, assistantMessage]);
+    setActiveAssistantId(assistantId);
 
     try {
       console.log('Invoking gemini-chat function with streaming...');
@@ -100,6 +107,9 @@ export const AIChatMentor = ({ currentCode = "", currentProject }: AIChatMentorP
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       
+      const controller = new AbortController();
+      setAbortController(controller);
+
       const response = await fetch(`${supabaseUrl}/functions/v1/gemini-chat`, {
         method: 'POST',
         headers: {
@@ -178,8 +188,13 @@ export const AIChatMentor = ({ currentCode = "", currentProject }: AIChatMentorP
       console.log('Streaming completed');
       setIsLoading(false);
       setAbortController(null);
+      setActiveAssistantId(null);
       
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        console.log("AI response aborted by user");
+        return;
+      }
       console.error('Error sending message:', error);
       
       // Handle abort gracefully
@@ -226,18 +241,41 @@ export const AIChatMentor = ({ currentCode = "", currentProject }: AIChatMentorP
       setInput(currentInput);
       setIsLoading(false);
       setAbortController(null);
+      setActiveAssistantId(null);
     }
   };
 
-  const handleStopGeneration = () => {
+  const handleAbortResponse = () => {
     if (abortController) {
       abortController.abort();
-      toast({
-        title: "Stopping generation",
-        description: "AI response stopped",
-      });
+      setAbortController(null);
     }
+
+    if (activeAssistantId) {
+      setMessages(prev =>
+        prev.map(msg =>
+          msg.id === activeAssistantId
+            ? {
+                ...msg,
+                content: msg.content
+                  ? `${msg.content}\n\n⚠️ Generation canceled by user.`
+                  : "⚠️ Generation canceled by user.",
+                category: "guidance"
+              }
+            : msg
+        )
+      );
+    }
+
+    setIsLoading(false);
+    setActiveAssistantId(null);
   };
+
+  useEffect(() => {
+    return () => {
+      abortController?.abort();
+    };
+  }, [abortController]);
 
   const getCategoryIcon = (category?: string) => {
     switch (category) {
@@ -277,7 +315,14 @@ export const AIChatMentor = ({ currentCode = "", currentProject }: AIChatMentorP
   };
 
   return (
-    <div className="flex flex-col h-full bg-card">
+    <div
+      className={cn(
+        "flex flex-col h-full bg-card transition-all duration-300",
+        isFullscreen
+          ? "fixed inset-4 z-50 rounded-xl shadow-2xl border border-border bg-background"
+          : "rounded-xl"
+      )}
+    >
       {/* Chat Header */}
       <div className="p-4 border-b border-border bg-gradient-to-r from-primary/5 to-accent/5">
         <div className="flex items-center gap-3">
@@ -293,6 +338,14 @@ export const AIChatMentor = ({ currentCode = "", currentProject }: AIChatMentorP
               {currentProject}
             </Badge>
           )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsFullscreen((prev) => !prev)}
+            aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          >
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </Button>
         </div>
       </div>
 
@@ -357,7 +410,8 @@ export const AIChatMentor = ({ currentCode = "", currentProject }: AIChatMentorP
             disabled={isLoading}
           />
           {isLoading ? (
-            <Button onClick={handleStopGeneration} variant="destructive">
+            <Button variant="destructive" onClick={handleAbortResponse}>
+              <CircleStop className="w-4 h-4 mr-2" />
               Stop
             </Button>
           ) : (

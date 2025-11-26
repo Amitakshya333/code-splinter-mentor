@@ -19,6 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAppStore } from "@/store/useAppStore";
 import { Terminal } from "@/components/Terminal";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { Github, PlayCircle, Rocket, Compass, ListChecks, Bug, Sparkles, Workflow } from "lucide-react";
 
 // Memoized loading component
@@ -74,6 +75,7 @@ const Index = () => {
   const { saveToCache } = useCodeCache();
   const [navigatorTab, setNavigatorTab] = useState<NavigatorTab>("steps");
   const [completedSteps, setCompletedSteps] = useState<Record<string, boolean>>({});
+  const [isMentorExpanded, setIsMentorExpanded] = useState(false);
 
   // Initialize room ID from URL params or generate new one
   useEffect(() => {
@@ -190,6 +192,11 @@ const Index = () => {
     }
   }, [setCurrentCode, setCurrentLanguage, saveToCache, addError]);
 
+  const handleQuickRun = useCallback(() => {
+    if (!currentCode) return;
+    handleRunCode(currentCode, currentLanguage);
+  }, [handleRunCode, currentCode, currentLanguage]);
+
   const handleShareRoom = useCallback((newRoomId: string) => {
     try {
       window.history.replaceState({}, "", `?room=${newRoomId}`);
@@ -244,13 +251,29 @@ const Index = () => {
         onSettingsClick={() => goToTab("systems")}
       />
 
-      <div className="px-4 py-6 space-y-6 lg:px-8">
+      <div className="px-4 pt-24 pb-6 space-y-6 lg:px-8">
+        <div className="fixed left-4 right-4 top-16 z-30 rounded-2xl border bg-background/95 backdrop-blur px-4 py-3 flex flex-wrap items-center gap-3 shadow-sm lg:left-8 lg:right-8">
+          <div className="flex-1 text-sm text-muted-foreground">
+            {currentProject ? `Working on ${currentProject}` : "No project selected"}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" onClick={handleQuickRun} disabled={!currentCode}>
+              <PlayCircle className="mr-2 h-4 w-4" />
+              Run Code
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => goToTab("guidance")}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              Ask Mentor
+            </Button>
+          </div>
+        </div>
+
         <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
           <Badge variant="outline" className="bg-primary/5 text-primary">Mentor Workspace</Badge>
           <span>Guidance-first • Workflow-aware • AI companion</span>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)_320px]">
+        <div className={`grid gap-6 ${isMentorExpanded ? "grid-cols-1" : "xl:grid-cols-[320px_minmax(0,1fr)_320px]"}`}>
           {/* Mentor Column */}
           <div className="space-y-4" id="mentor-panel">
             <Card>
@@ -290,6 +313,13 @@ const Index = () => {
                     <Compass className="h-4 w-4 mr-2" />
                     Guidance
                   </Button>
+                  <Button 
+                    variant={isMentorExpanded ? "secondary" : "outline"} 
+                    size="sm" 
+                    onClick={() => setIsMentorExpanded((prev) => !prev)}
+                  >
+                    {isMentorExpanded ? "Exit Mentor Focus" : "Expand Mentor"}
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -305,6 +335,7 @@ const Index = () => {
           </div>
 
           {/* Workspace Column */}
+          {!isMentorExpanded && (
           <div className="space-y-4" id="workspace-panel">
             <Card>
               <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -327,55 +358,65 @@ const Index = () => {
               </CardHeader>
             </Card>
 
-            <Card className="overflow-hidden">
+            <Card className="overflow-hidden flex flex-col" style={{ minHeight: "480px" }}>
               <div className="border-b bg-muted/40 px-4 py-2 text-xs uppercase tracking-wide text-muted-foreground flex items-center justify-between">
                 <span>Editor</span>
                 <span>Mode • Build</span>
               </div>
-              <CardContent className="p-0">
-                <div className="h-[480px]">
+              <CardContent className="p-0 flex-1 min-h-0">
+                <div className="h-full min-h-0">
                   <ErrorBoundary>
-                    <MultiTabCodeEditor 
-                      onCodeChange={handleCodeChange} 
-                      onLanguageChange={handleLanguageChange}
-                      onRun={handleRunCode}
-                    />
+                    <div className="h-full min-h-0">
+                      <MultiTabCodeEditor 
+                        onCodeChange={handleCodeChange} 
+                        onLanguageChange={handleLanguageChange}
+                        onRun={handleRunCode}
+                      />
+                    </div>
                   </ErrorBoundary>
                 </div>
               </CardContent>
             </Card>
 
-            <div className="grid gap-4 lg:grid-cols-2">
-              <Card className="overflow-hidden">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Output Review</CardTitle>
-                  <CardDescription>Sensei watches the console and calls out what matters.</CardDescription>
-                </CardHeader>
-                <CardContent className="h-[260px]">
-                  <ErrorBoundary>
-                    <EnhancedOutputConsole 
-                      currentCode={currentCode} 
-                      currentLanguage={currentLanguage}
-                    />
-                  </ErrorBoundary>
-                </CardContent>
-              </Card>
+            <ResizablePanelGroup direction="vertical" className="rounded-2xl border bg-card shadow-sm">
+              <ResizablePanel defaultSize={50} minSize={25}>
+                <div className="space-y-2 p-4">
+                  <div>
+                    <p className="text-sm font-medium">Output Review</p>
+                    <p className="text-xs text-muted-foreground">Sensei watches the console and calls out what matters.</p>
+                  </div>
+                  <div className="h-[320px] min-h-[240px]">
+                    <ErrorBoundary>
+                      <EnhancedOutputConsole 
+                        currentCode={currentCode} 
+                        currentLanguage={currentLanguage}
+                      />
+                    </ErrorBoundary>
+                  </div>
+                </div>
+              </ResizablePanel>
 
-              <Card className="overflow-hidden">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Command Console</CardTitle>
-                  <CardDescription>Run scripts, tests, and deployment commands.</CardDescription>
-                </CardHeader>
-                <CardContent className="h-[260px]">
-                  <ErrorBoundary>
-                    <Terminal />
-                  </ErrorBoundary>
-                </CardContent>
-              </Card>
-            </div>
+              <ResizableHandle withHandle className="bg-muted/40" />
+
+              <ResizablePanel defaultSize={50} minSize={25}>
+                <div className="space-y-2 p-4">
+                  <div>
+                    <p className="text-sm font-medium">Command Console</p>
+                    <p className="text-xs text-muted-foreground">Run scripts, tests, and deployment commands.</p>
+                  </div>
+                  <div className="h-[320px] min-h-[240px]">
+                    <ErrorBoundary>
+                      <Terminal />
+                    </ErrorBoundary>
+                  </div>
+                </div>
+              </ResizablePanel>
+            </ResizablePanelGroup>
           </div>
+          )}
 
           {/* Navigator Column */}
+          {!isMentorExpanded && (
           <div className="space-y-4" id="navigator-panel">
             <Card>
               <CardHeader>
@@ -505,6 +546,7 @@ const Index = () => {
               </CardContent>
             </Card>
           </div>
+          )}
         </div>
       </div>
     </div>

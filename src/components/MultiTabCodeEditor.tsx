@@ -236,9 +236,9 @@ export const MultiTabCodeEditor = memo<MultiTabCodeEditorProps>(({
   const secondaryTabData = secondaryTab ? tabs.find(t => t.id === secondaryTab) : null;
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col min-h-0 overflow-hidden">
       {/* Tab Bar */}
-      <div className="flex items-center justify-between border-b bg-card/50 px-2 py-1">
+      <div className="flex items-center justify-between border-b bg-card/50 px-2 py-1 shrink-0">
         <div className="flex items-center gap-1 flex-1 overflow-x-auto">
           {tabs.map(tab => (
             <button
@@ -368,11 +368,11 @@ export const MultiTabCodeEditor = memo<MultiTabCodeEditorProps>(({
       </div>
 
       {/* Editor Area */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative min-h-0 overflow-hidden">
         {splitView && secondaryTabData ? (
-          <ResizablePanelGroup direction="horizontal" className="h-full">
-            <ResizablePanel defaultSize={50} minSize={30}>
-              <div className="h-full">
+          <ResizablePanelGroup direction="horizontal" className="h-full min-h-0">
+            <ResizablePanel defaultSize={50} minSize={30} className="min-h-0 overflow-hidden">
+              <div className="h-full min-h-0 flex flex-col overflow-hidden">
                 {activeTabData && (
                   <EnhancedCodeEditor
                     key={activeTab}
@@ -386,8 +386,8 @@ export const MultiTabCodeEditor = memo<MultiTabCodeEditorProps>(({
             
             <ResizableHandle withHandle />
             
-            <ResizablePanel defaultSize={50} minSize={30}>
-              <div className="h-full">
+            <ResizablePanel defaultSize={50} minSize={30} className="min-h-0 overflow-hidden">
+              <div className="h-full min-h-0 flex flex-col overflow-hidden">
                 {secondaryTabData && (
                   <EnhancedCodeEditor
                     key={secondaryTab}
@@ -400,7 +400,7 @@ export const MultiTabCodeEditor = memo<MultiTabCodeEditorProps>(({
             </ResizablePanel>
           </ResizablePanelGroup>
         ) : (
-          <div className="h-full">
+          <div className="h-full min-h-0 flex flex-col overflow-hidden">
             {activeTabData && (
               <EnhancedCodeEditor
                 key={activeTab}

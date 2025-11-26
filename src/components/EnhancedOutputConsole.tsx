@@ -305,10 +305,10 @@ export function EnhancedOutputConsole({ currentCode = "", currentLanguage = "pyt
   };
 
   const filteredOutput = getFilteredOutput();
-
+  
   return (
-    <Card className="h-full flex flex-col relative z-20">
-      <CardHeader className="pb-3 relative z-20">
+    <Card className="h-full flex flex-col min-h-0 relative z-10 border bg-card/40">
+      <CardHeader className="pb-3 border-b bg-card sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Terminal className="h-5 w-5 text-primary" />
@@ -414,8 +414,8 @@ export function EnhancedOutputConsole({ currentCode = "", currentLanguage = "pyt
       </CardHeader>
 
       {!isCollapsed && (
-        <CardContent className="flex-1 p-0">
-          <div className="px-4 pb-2">
+        <CardContent className="flex-1 p-0 flex flex-col overflow-hidden">
+          <div className="px-4 pb-2 shrink-0">
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
@@ -433,9 +433,9 @@ export function EnhancedOutputConsole({ currentCode = "", currentLanguage = "pyt
             </div>
           </div>
           
-          <Separator />
+          <Separator className="shrink-0" />
           
-          <ScrollArea className="h-80" ref={scrollAreaRef}>
+          <ScrollArea className="flex-1" ref={scrollAreaRef}>
             <div className="p-4 space-y-2">
               {filteredOutput.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8">
@@ -484,6 +484,18 @@ export function EnhancedOutputConsole({ currentCode = "", currentLanguage = "pyt
               <div ref={endRef} />
             </div>
           </ScrollArea>
+
+          <div className="border-t border-border bg-card p-2 shrink-0">
+            <div className="flex items-center gap-2 text-xs font-mono">
+              <span className="text-primary">{'>'}</span>
+              <input
+                type="text"
+                placeholder={`Interactive ${currentLanguage} console...`}
+                className="flex-1 bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
+                disabled={isLoading}
+              />
+            </div>
+          </div>
         </CardContent>
       )}
     </Card>
