@@ -1,9 +1,10 @@
-import { useEffect } from "react";
-import { NavigatorNavbar } from "@/components/navigator/NavigatorNavbar";
-import { AIMentorPanel } from "@/components/navigator/AIMentorPanel";
-import { SimulatedPlatform } from "@/components/navigator/SimulatedPlatform";
-import { NavigatorGuide } from "@/components/navigator/NavigatorGuide";
+import { useState } from "react";
 import { useNavigatorState } from "@/hooks/useNavigatorState";
+import { NavigatorHeader } from "@/components/navigator/NavigatorHeader";
+import { NavigatorHero } from "@/components/navigator/NavigatorHero";
+import { NavigatorSteps } from "@/components/navigator/NavigatorSteps";
+import { NavigatorMentor } from "@/components/navigator/NavigatorMentor";
+import { NavigatorWorkspace } from "@/components/navigator/NavigatorWorkspace";
 
 const Navigator = () => {
   const {
@@ -17,66 +18,64 @@ const Navigator = () => {
     getCurrentStep,
   } = useNavigatorState();
 
+  const [showMentor, setShowMentor] = useState(false);
   const currentStep = getCurrentStep();
+  const completedCount = steps.filter(s => s.completed).length;
+  const progress = (completedCount / steps.length) * 100;
 
   const goals = {
-    aws: "Deploy an EC2 Instance on AWS",
-    docker: "Run a Container with Docker",
-    github: "Create a GitHub Repository Workflow",
+    aws: "Deploy an EC2 Instance",
+    docker: "Run Your First Container",
+    github: "Create a Repository Workflow",
   };
 
-  // Update view based on completed steps
-  useEffect(() => {
-    const completedCount = steps.filter(s => s.completed).length;
-    
-    if (platform === 'aws') {
-      if (completedCount === 0) setCurrentView('dashboard');
-      else if (completedCount >= 1) setCurrentView('ec2');
-      if (completedCount >= 2) setCurrentView('launch');
-    } else if (platform === 'github') {
-      if (completedCount === 0) setCurrentView('dashboard');
-      else if (completedCount >= 1) setCurrentView('repo');
-    }
-  }, [steps, platform, setCurrentView]);
-
   return (
-    <div className="h-screen w-screen overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-      {/* Background Effects */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-violet-500/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-fuchsia-500/10 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-violet-500/5 to-fuchsia-500/5 rounded-full blur-3xl" />
+    <div className="min-h-screen bg-background">
+      {/* Subtle gradient background */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[600px] bg-gradient-to-b from-primary/5 to-transparent rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-0 w-[800px] h-[400px] bg-gradient-to-t from-primary/3 to-transparent rounded-full blur-3xl" />
       </div>
 
-      {/* Main Layout */}
-      <div className="relative h-full flex flex-col">
-        <NavigatorNavbar platform={platform} onPlatformChange={changePlatform} />
+      {/* Content */}
+      <div className="relative">
+        <NavigatorHeader 
+          platform={platform} 
+          onPlatformChange={changePlatform}
+          onMentorToggle={() => setShowMentor(!showMentor)}
+          showMentor={showMentor}
+        />
 
-        <div className="flex-1 flex overflow-hidden p-4 gap-4">
-          {/* Left Panel - AI Mentor */}
-          <div className="w-80 shrink-0 rounded-2xl overflow-hidden border border-white/10 shadow-xl">
-            <AIMentorPanel 
-              messages={mentorMessages} 
-              currentStepHint={currentStep?.description}
-            />
-          </div>
+        <main className="max-w-4xl mx-auto px-6 py-12">
+          <NavigatorHero 
+            goal={goals[platform]} 
+            platform={platform}
+            progress={progress}
+            completedCount={completedCount}
+            totalSteps={steps.length}
+          />
 
-          {/* Center Panel - Simulated Platform */}
-          <div className="flex-1 min-w-0">
-            <SimulatedPlatform
-              platform={platform}
-              currentStep={currentStep}
-              onAction={completeAction}
-              view={currentView}
-              onViewChange={setCurrentView}
-            />
-          </div>
+          <NavigatorSteps 
+            steps={steps} 
+            currentStep={currentStep}
+          />
 
-          {/* Right Panel - Navigator Guide */}
-          <div className="w-80 shrink-0 rounded-2xl overflow-hidden border border-white/10 shadow-xl">
-            <NavigatorGuide steps={steps} goal={goals[platform]} />
-          </div>
-        </div>
+          <NavigatorWorkspace
+            platform={platform}
+            currentStep={currentStep}
+            onAction={completeAction}
+            view={currentView}
+            onViewChange={setCurrentView}
+          />
+        </main>
+
+        {/* Floating AI Mentor */}
+        <NavigatorMentor 
+          messages={mentorMessages}
+          currentHint={currentStep?.description}
+          isOpen={showMentor}
+          onClose={() => setShowMentor(false)}
+        />
       </div>
     </div>
   );
