@@ -20,7 +20,8 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useAppStore } from "@/store/useAppStore";
 import { Terminal } from "@/components/Terminal";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { Github, PlayCircle, Rocket, Compass, ListChecks, Bug, Sparkles, Workflow } from "lucide-react";
+import { Github, PlayCircle, Rocket, Compass, ListChecks, Bug, Sparkles, Workflow, Navigation } from "lucide-react";
+import { Link } from "react-router-dom";
 
 // Memoized loading component
 const LoadingScreen = memo(({ progress }: { progress: number }) => (
@@ -257,6 +258,12 @@ const Index = () => {
             {currentProject ? `Working on ${currentProject}` : "No project selected"}
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button size="sm" asChild variant="default" className="bg-gradient-to-r from-primary to-primary/80">
+              <Link to="/">
+                <Navigation className="mr-2 h-4 w-4" />
+                Navigator
+              </Link>
+            </Button>
             <Button size="sm" onClick={handleQuickRun} disabled={!currentCode}>
               <PlayCircle className="mr-2 h-4 w-4" />
               Run Code
