@@ -5,6 +5,8 @@ import { ThemeProvider } from "@/hooks/use-theme";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { PageTransition } from "@/components/PageTransition";
+import { NavigationShortcutsProvider } from "@/components/NavigationShortcutsProvider";
 import Index from "./pages/Index";
 import Navigator from "./pages/Navigator";
 import NotFound from "./pages/NotFound";
@@ -34,12 +36,16 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Navigator />} />
-              <Route path="/ide" element={<Index />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <NavigationShortcutsProvider>
+              <PageTransition>
+                <Routes>
+                  <Route path="/" element={<Navigator />} />
+                  <Route path="/ide" element={<Index />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </PageTransition>
+            </NavigationShortcutsProvider>
           </BrowserRouter>
         </TooltipProvider>
       </ThemeProvider>
