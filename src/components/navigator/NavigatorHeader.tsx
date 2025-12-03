@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { Compass, Sparkles, MessageCircle } from "lucide-react";
+import { Compass, Sparkles, MessageCircle, Code2 } from "lucide-react";
 import { Platform } from "@/hooks/useNavigatorState";
 import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
 
 interface NavigatorHeaderProps {
   platform: Platform;
@@ -69,6 +70,17 @@ export const NavigatorHeader = ({
           >
             <MessageCircle className="w-4 h-4" />
             <span className="hidden sm:inline">AI Mentor</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            className="gap-2 rounded-full"
+          >
+            <Link to="/ide">
+              <Code2 className="w-4 h-4" />
+              <span className="hidden sm:inline">Back to IDE</span>
+            </Link>
           </Button>
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary/50 rounded-full">
             <Sparkles className="w-3.5 h-3.5 text-primary" />
