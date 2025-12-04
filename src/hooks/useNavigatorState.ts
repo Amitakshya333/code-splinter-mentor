@@ -1,6 +1,12 @@
 import { useState, useCallback } from 'react';
-
-export type Platform = 'aws' | 'docker' | 'github';
+import { 
+  navigatorCategories, 
+  getCategoryById, 
+  getModuleById,
+  NavigatorCategory,
+  NavigatorModule,
+  NavigatorStepData 
+} from '@/data/navigatorModules';
 
 export interface NavigatorStep {
   id: string;
@@ -11,6 +17,7 @@ export interface NavigatorStep {
   current: boolean;
   hasError?: boolean;
   warning?: string;
+  tip?: string;
 }
 
 export interface MentorMessage {
@@ -20,59 +27,82 @@ export interface MentorMessage {
   timestamp: Date;
 }
 
-const AWS_STEPS: NavigatorStep[] = [
-  { id: '1', title: 'Open EC2 Console', description: 'Navigate to the EC2 dashboard', action: 'click-ec2', completed: false, current: true },
-  { id: '2', title: 'Launch Instance', description: 'Click the Launch Instance button', action: 'click-launch', completed: false, current: false },
-  { id: '3', title: 'Select AMI', description: 'Choose Amazon Linux 2 AMI', action: 'select-ami', completed: false, current: false },
-  { id: '4', title: 'Choose Instance Type', description: 'Select t2.micro (free tier)', action: 'select-type', completed: false, current: false },
-  { id: '5', title: 'Configure Security', description: 'Set up security group rules', action: 'configure-security', completed: false, current: false },
-  { id: '6', title: 'Review & Launch', description: 'Review settings and launch', action: 'review-launch', completed: false, current: false },
-];
-
-const DOCKER_STEPS: NavigatorStep[] = [
-  { id: '1', title: 'Open Terminal', description: 'Access Docker CLI', action: 'open-terminal', completed: false, current: true },
-  { id: '2', title: 'Pull Image', description: 'Pull nginx:latest image', action: 'pull-image', completed: false, current: false },
-  { id: '3', title: 'Create Container', description: 'Run container with port mapping', action: 'create-container', completed: false, current: false },
-  { id: '4', title: 'Verify Running', description: 'Check container status', action: 'verify-status', completed: false, current: false },
-  { id: '5', title: 'View Logs', description: 'Inspect container logs', action: 'view-logs', completed: false, current: false },
-];
-
-const GITHUB_STEPS: NavigatorStep[] = [
-  { id: '1', title: 'Create Repository', description: 'Initialize a new repo', action: 'create-repo', completed: false, current: true },
-  { id: '2', title: 'Add README', description: 'Create README.md file', action: 'add-readme', completed: false, current: false },
-  { id: '3', title: 'Create Branch', description: 'Create feature branch', action: 'create-branch', completed: false, current: false },
-  { id: '4', title: 'Make Changes', description: 'Edit files in branch', action: 'make-changes', completed: false, current: false },
-  { id: '5', title: 'Open Pull Request', description: 'Submit PR for review', action: 'open-pr', completed: false, current: false },
-];
+// Convert module steps to navigator steps
+const convertSteps = (moduleSteps: NavigatorStepData[]): NavigatorStep[] => {
+  return moduleSteps.map((step, index) => ({
+    id: step.id,
+    title: step.title,
+    description: step.instruction,
+    action: step.action,
+    completed: false,
+    current: index === 0,
+    warning: step.warning,
+    tip: step.tip,
+  }));
+};
 
 export const useNavigatorState = () => {
-  const [platform, setPlatform] = useState<Platform>('aws');
-  const [steps, setSteps] = useState<NavigatorStep[]>(AWS_STEPS);
+  const [categoryId, setCategoryId] = useState<string>('aws');
+  const [moduleId, setModuleId] = useState<string>('ec2-management');
+  const [steps, setSteps] = useState<NavigatorStep[]>(() => {
+    const module = getModuleById('aws', 'ec2-management');
+    return module ? convertSteps(module.steps) : [];
+  });
   const [mentorMessages, setMentorMessages] = useState<MentorMessage[]>([
-    { id: '1', content: "Welcome! I'll guide you through deploying your first app on AWS. Let's start by accessing the EC2 console.", type: 'info', timestamp: new Date() }
+    { id: '1', content: "Welcome! I'll guide you through deploying your first EC2 instance on AWS. Let's start!", type: 'info', timestamp: new Date() }
   ]);
   const [currentView, setCurrentView] = useState('dashboard');
 
-  const changePlatform = useCallback((newPlatform: Platform) => {
-    setPlatform(newPlatform);
+  // Get current category and module
+  const currentCategory = getCategoryById(categoryId);
+  const currentModule = getModuleById(categoryId, moduleId);
+
+  // Legacy platform support
+  const platform = categoryId as 'aws' | 'docker' | 'github';
+
+  const changeCategory = useCallback((newCategoryId: string) => {
+    setCategoryId(newCategoryId);
+    const category = getCategoryById(newCategoryId);
+    if (category && category.subCategories.length > 0) {
+      const firstModule = category.subCategories[0].modules[0];
+      if (firstModule) {
+        setModuleId(firstModule.id);
+        setSteps(convertSteps(firstModule.steps));
+        setMentorMessages([{
+          id: Date.now().toString(),
+          content: `Welcome to ${category.name}! Let's explore ${firstModule.name}. ${firstModule.description}`,
+          type: 'info',
+          timestamp: new Date()
+        }]);
+      }
+    }
     setCurrentView('dashboard');
-    
-    const platformSteps = {
-      aws: AWS_STEPS,
-      docker: DOCKER_STEPS,
-      github: GITHUB_STEPS,
-    };
-    
-    setSteps(platformSteps[newPlatform].map((s, i) => ({ ...s, completed: false, current: i === 0 })));
-    
-    const welcomeMessages = {
-      aws: "Great choice! AWS is the most popular cloud platform. Let's deploy an EC2 instance together.",
-      docker: "Docker is essential for modern DevOps. I'll walk you through containerizing an app.",
-      github: "GitHub is where developers collaborate. Let's set up your first repository workflow.",
-    };
-    
-    setMentorMessages([{ id: Date.now().toString(), content: welcomeMessages[newPlatform], type: 'info', timestamp: new Date() }]);
   }, []);
+
+  const changeModule = useCallback((newModuleId: string) => {
+    setModuleId(newModuleId);
+    const module = getModuleById(categoryId, newModuleId);
+    if (module) {
+      setSteps(convertSteps(module.steps));
+      setMentorMessages([{
+        id: Date.now().toString(),
+        content: `Starting ${module.name}: ${module.description}`,
+        type: 'info',
+        timestamp: new Date()
+      }]);
+    }
+    setCurrentView('dashboard');
+  }, [categoryId]);
+
+  // Legacy platform change (maps to category)
+  const changePlatform = useCallback((newPlatform: 'aws' | 'docker' | 'github') => {
+    const categoryMap: Record<string, string> = {
+      'aws': 'aws',
+      'docker': 'containers',
+      'github': 'git',
+    };
+    changeCategory(categoryMap[newPlatform] || newPlatform);
+  }, [changeCategory]);
 
   const completeAction = useCallback((action: string) => {
     const currentStepIndex = steps.findIndex(s => s.current);
@@ -110,13 +140,16 @@ export const useNavigatorState = () => {
     };
     setMentorMessages(prev => [...prev, successMsg]);
 
-    // Add hint for next step
     const nextStep = steps[currentStepIndex + 1];
     if (nextStep) {
       setTimeout(() => {
+        let hintContent = `Next up: ${nextStep.description}`;
+        if (nextStep.tip) hintContent += ` 💡 Tip: ${nextStep.tip}`;
+        if (nextStep.warning) hintContent += ` ⚠️ Warning: ${nextStep.warning}`;
+        
         const hintMsg: MentorMessage = {
           id: (Date.now() + 1).toString(),
-          content: `Next up: ${nextStep.description}. Look for the ${nextStep.title.toLowerCase()} option.`,
+          content: hintContent,
           type: 'hint',
           timestamp: new Date()
         };
@@ -132,13 +165,25 @@ export const useNavigatorState = () => {
   }, [steps]);
 
   return {
+    // New modular system
+    categoryId,
+    moduleId,
+    currentCategory,
+    currentModule,
+    categories: navigatorCategories,
+    changeCategory,
+    changeModule,
+    // Legacy support
     platform,
+    changePlatform,
+    // Core functionality
     steps,
     mentorMessages,
     currentView,
     setCurrentView,
-    changePlatform,
     completeAction,
     getCurrentStep,
   };
 };
+
+export type Platform = 'aws' | 'docker' | 'github';
