@@ -12,11 +12,10 @@ const Navigator = () => {
     platform,
     steps,
     mentorMessages,
-    currentView,
-    setCurrentView,
-    changePlatform,
     completeAction,
     getCurrentStep,
+    getCurrentStepIndex,
+    goToStep,
     categories,
     currentCategory,
     currentModule,
@@ -26,8 +25,9 @@ const Navigator = () => {
 
   const [showMentor, setShowMentor] = useState(false);
   const currentStep = getCurrentStep();
+  const currentStepIndex = getCurrentStepIndex();
   const completedCount = steps.filter(s => s.completed).length;
-  const progress = (completedCount / steps.length) * 100;
+  const progress = steps.length > 0 ? (completedCount / steps.length) * 100 : 0;
 
   const goal = currentModule?.name || "Explore";
 
@@ -39,8 +39,6 @@ const Navigator = () => {
 
       <div className="relative">
         <NavigatorHeader 
-          platform={platform} 
-          onPlatformChange={changePlatform}
           onMentorToggle={() => setShowMentor(!showMentor)}
           showMentor={showMentor}
         />
@@ -68,11 +66,11 @@ const Navigator = () => {
           />
 
           <NavigatorWorkspace
-            platform={platform}
+            steps={steps}
             currentStep={currentStep}
+            currentStepIndex={currentStepIndex}
             onAction={completeAction}
-            view={currentView}
-            onViewChange={setCurrentView}
+            onStepClick={goToStep}
           />
         </main>
 

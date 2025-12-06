@@ -1,280 +1,148 @@
-import { Platform, NavigatorStep } from "@/hooks/useNavigatorState";
+import { NavigatorStep } from "@/hooks/useNavigatorState";
 import { cn } from "@/lib/utils";
 import { 
-  Cloud, Server, Shield, Play, 
-  Container, Terminal, FileCode,
-  GitBranch, FileText, GitPullRequest,
-  ChevronRight, Sparkles
+  ChevronRight, Sparkles, Play, CheckCircle2,
+  Cloud, Server, Shield, Terminal, FileCode, Container,
+  GitBranch, FileText, GitPullRequest, Database, Lock,
+  BarChart3, Settings, Layers, Globe, Zap
 } from "lucide-react";
 
 interface NavigatorWorkspaceProps {
-  platform: Platform;
+  steps: NavigatorStep[];
   currentStep?: NavigatorStep;
   onAction: (action: string) => void;
-  view: string;
-  onViewChange: (view: string) => void;
+  onStepClick: (stepIndex: number) => void;
+  currentStepIndex: number;
 }
 
+const getIconForAction = (action: string) => {
+  const iconMap: Record<string, any> = {
+    'console': Cloud, 'dashboard': Server, 'launch': Play, 'instance': Server,
+    'ami': FileCode, 'type': Settings, 'security': Shield, 'review': CheckCircle2,
+    'terminal': Terminal, 'docker': Container, 'pull': Container, 'run': Play,
+    'build': Layers, 'compose': FileCode, 'git': GitBranch, 'repo': FileText,
+    'branch': GitBranch, 'commit': CheckCircle2, 'push': Zap, 'pr': GitPullRequest,
+    'merge': GitPullRequest, 'vpc': Globe, 'subnet': Layers, 'route': Globe,
+    'database': Database, 'rds': Database, 'dynamo': Database, 's3': Cloud,
+    'bucket': Cloud, 'iam': Lock, 'policy': Shield, 'role': Lock,
+    'cloudwatch': BarChart3, 'monitor': BarChart3, 'log': FileText, 'alert': Zap,
+    'pipeline': Layers, 'deploy': Play, 'jenkins': Settings, 'action': Zap,
+    'kubernetes': Container, 'helm': Layers, 'grafana': BarChart3, 'prometheus': BarChart3,
+  };
+  
+  const key = Object.keys(iconMap).find(k => action.toLowerCase().includes(k));
+  return iconMap[key || ''] || Play;
+};
+
 export const NavigatorWorkspace = ({ 
-  platform, 
+  steps,
   currentStep, 
   onAction,
-  view,
-  onViewChange 
+  onStepClick,
+  currentStepIndex
 }: NavigatorWorkspaceProps) => {
-  const isHighlighted = (action: string) => currentStep?.action === action;
 
   const ActionCard = ({ 
-    action, 
-    icon: Icon, 
-    title, 
-    description,
-    onClick
+    step,
+    index,
+    isActive,
+    isCompleted
   }: { 
-    action: string; 
-    icon: any; 
-    title: string; 
-    description: string;
-    onClick?: () => void;
+    step: NavigatorStep;
+    index: number;
+    isActive: boolean;
+    isCompleted: boolean;
   }) => {
-    const highlighted = isHighlighted(action);
+    const Icon = getIconForAction(step.action);
     
     return (
       <button
         onClick={() => {
-          onClick?.();
-          onAction(action);
+          onStepClick(index);
+          onAction(step.action);
         }}
         className={cn(
-          "group relative w-full p-6 rounded-3xl text-left transition-all duration-300",
+          "group relative w-full p-5 rounded-2xl text-left transition-all duration-300",
           "bg-card border hover:shadow-lg",
-          highlighted 
+          isActive 
             ? "border-primary/30 shadow-lg shadow-primary/10 ring-2 ring-primary/20" 
-            : "border-border/50 hover:border-border"
+            : isCompleted
+              ? "border-green-500/30 bg-green-500/5"
+              : "border-border/50 hover:border-border"
         )}
       >
-        {highlighted && (
+        {isActive && (
           <div className="absolute -top-2 -right-2 px-2 py-1 bg-primary text-primary-foreground text-xs font-medium rounded-full flex items-center gap-1">
             <Sparkles className="w-3 h-3" />
-            Click here
+            Current
           </div>
         )}
         
-        <div className={cn(
-          "w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-colors",
-          highlighted ? "bg-primary/10" : "bg-secondary"
-        )}>
-          <Icon className={cn(
-            "w-6 h-6 transition-colors",
-            highlighted ? "text-primary" : "text-muted-foreground"
-          )} />
-        </div>
+        {isCompleted && (
+          <div className="absolute -top-2 -right-2 px-2 py-1 bg-green-500 text-white text-xs font-medium rounded-full flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3" />
+            Done
+          </div>
+        )}
         
-        <h3 className="font-semibold text-foreground mb-1 flex items-center gap-2">
-          {title}
-          <ChevronRight className={cn(
-            "w-4 h-4 transition-all",
-            highlighted ? "text-primary translate-x-0" : "text-muted-foreground -translate-x-1 opacity-0 group-hover:translate-x-0 group-hover:opacity-100"
-          )} />
-        </h3>
-        <p className="text-sm text-muted-foreground">{description}</p>
+        <div className="flex items-start gap-4">
+          <div className={cn(
+            "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors",
+            isActive ? "bg-primary/10" : isCompleted ? "bg-green-500/10" : "bg-secondary"
+          )}>
+            <Icon className={cn(
+              "w-5 h-5 transition-colors",
+              isActive ? "text-primary" : isCompleted ? "text-green-500" : "text-muted-foreground"
+            )} />
+          </div>
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className={cn(
+                "text-xs font-medium px-2 py-0.5 rounded-full",
+                isActive ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"
+              )}>
+                Step {index + 1}
+              </span>
+            </div>
+            <h3 className="font-semibold text-foreground mb-1 flex items-center gap-2">
+              {step.title}
+              <ChevronRight className={cn(
+                "w-4 h-4 transition-all",
+                isActive ? "text-primary translate-x-0" : "text-muted-foreground -translate-x-1 opacity-0 group-hover:translate-x-0 group-hover:opacity-100"
+              )} />
+            </h3>
+            <p className="text-sm text-muted-foreground line-clamp-2">{step.description}</p>
+          </div>
+        </div>
       </button>
     );
   };
 
-  // AWS Platform
-  if (platform === 'aws') {
-    if (view === 'dashboard') {
-      return (
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground text-center mb-6">Select a service to continue</p>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <ActionCard 
-              action="click-ec2" 
-              icon={Server} 
-              title="EC2" 
-              description="Virtual servers in the cloud"
-              onClick={() => onViewChange('ec2')}
-            />
-            <ActionCard 
-              action="" 
-              icon={Cloud} 
-              title="S3" 
-              description="Scalable storage in the cloud"
-            />
-            <ActionCard 
-              action="" 
-              icon={Shield} 
-              title="IAM" 
-              description="Identity and access management"
-            />
-            <ActionCard 
-              action="" 
-              icon={Terminal} 
-              title="Lambda" 
-              description="Run code without servers"
-            />
-          </div>
-        </div>
-      );
-    }
-
-    if (view === 'ec2') {
-      return (
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground text-center mb-6">EC2 Dashboard</p>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <ActionCard 
-              action="click-launch" 
-              icon={Play} 
-              title="Launch Instance" 
-              description="Create a new virtual server"
-              onClick={() => onViewChange('launch')}
-            />
-            <ActionCard 
-              action="" 
-              icon={Server} 
-              title="Running Instances" 
-              description="View active servers"
-            />
-          </div>
-        </div>
-      );
-    }
-
-    if (view === 'launch') {
-      return (
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground text-center mb-6">Configure your instance</p>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <ActionCard 
-              action="select-ami" 
-              icon={FileCode} 
-              title="Amazon Linux 2" 
-              description="Free tier eligible AMI"
-            />
-            <ActionCard 
-              action="select-type" 
-              icon={Server} 
-              title="t2.micro" 
-              description="1 vCPU, 1 GiB memory"
-            />
-            <ActionCard 
-              action="configure-security" 
-              icon={Shield} 
-              title="Security Group" 
-              description="Configure firewall rules"
-            />
-            <ActionCard 
-              action="review-launch" 
-              icon={Play} 
-              title="Review & Launch" 
-              description="Finalize and deploy"
-            />
-          </div>
-        </div>
-      );
-    }
-  }
-
-  // Docker Platform
-  if (platform === 'docker') {
+  if (!steps.length) {
     return (
-      <div className="space-y-4">
-        <p className="text-sm text-muted-foreground text-center mb-6">Docker commands</p>
-        <div className="grid sm:grid-cols-2 gap-4">
-          <ActionCard 
-            action="open-terminal" 
-            icon={Terminal} 
-            title="Open Terminal" 
-            description="Access Docker CLI"
-          />
-          <ActionCard 
-            action="pull-image" 
-            icon={Container} 
-            title="Pull Image" 
-            description="Download nginx:latest"
-          />
-          <ActionCard 
-            action="create-container" 
-            icon={Play} 
-            title="Run Container" 
-            description="Start with port mapping"
-          />
-          <ActionCard 
-            action="verify-status" 
-            icon={Server} 
-            title="Check Status" 
-            description="View running containers"
-          />
-          <ActionCard 
-            action="view-logs" 
-            icon={FileText} 
-            title="View Logs" 
-            description="Inspect container output"
-          />
-        </div>
+      <div className="flex items-center justify-center h-64 text-muted-foreground">
+        <p>Select a module to begin</p>
       </div>
     );
   }
 
-  // GitHub Platform
-  if (platform === 'github') {
-    if (view === 'dashboard') {
-      return (
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground text-center mb-6">Repository actions</p>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <ActionCard 
-              action="create-repo" 
-              icon={FileCode} 
-              title="Create Repository" 
-              description="Initialize a new repo"
-              onClick={() => onViewChange('repo')}
-            />
-            <ActionCard 
-              action="" 
-              icon={GitBranch} 
-              title="Your Repositories" 
-              description="View existing repos"
-            />
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-4">
-        <p className="text-sm text-muted-foreground text-center mb-6">Repository setup</p>
-        <div className="grid sm:grid-cols-2 gap-4">
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground text-center mb-4">
+        Follow these steps to complete the workflow
+      </p>
+      <div className="grid gap-3">
+        {steps.map((step, index) => (
           <ActionCard 
-            action="add-readme" 
-            icon={FileText} 
-            title="Add README" 
-            description="Create documentation"
+            key={step.id}
+            step={step}
+            index={index}
+            isActive={index === currentStepIndex}
+            isCompleted={index < currentStepIndex}
           />
-          <ActionCard 
-            action="create-branch" 
-            icon={GitBranch} 
-            title="Create Branch" 
-            description="Start a feature branch"
-          />
-          <ActionCard 
-            action="make-changes" 
-            icon={FileCode} 
-            title="Edit Files" 
-            description="Make code changes"
-          />
-          <ActionCard 
-            action="open-pr" 
-            icon={GitPullRequest} 
-            title="Pull Request" 
-            description="Submit for review"
-          />
-        </div>
+        ))}
       </div>
-    );
-  }
-
-  return null;
+    </div>
+  );
 };
