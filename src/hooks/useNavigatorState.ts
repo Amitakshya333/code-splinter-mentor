@@ -164,6 +164,31 @@ export const useNavigatorState = () => {
     return steps.find(s => s.current);
   }, [steps]);
 
+  const getCurrentStepIndex = useCallback(() => {
+    return steps.findIndex(s => s.current);
+  }, [steps]);
+
+  const goToStep = useCallback((index: number) => {
+    setSteps(prev => prev.map((step, idx) => ({
+      ...step,
+      current: idx === index,
+      completed: idx < index
+    })));
+    
+    const targetStep = steps[index];
+    if (targetStep) {
+      let hintContent = `Now: ${targetStep.description}`;
+      if (targetStep.tip) hintContent += ` 💡 ${targetStep.tip}`;
+      
+      setMentorMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        content: hintContent,
+        type: 'hint',
+        timestamp: new Date()
+      }]);
+    }
+  }, [steps]);
+
   return {
     // New modular system
     categoryId,
@@ -183,6 +208,8 @@ export const useNavigatorState = () => {
     setCurrentView,
     completeAction,
     getCurrentStep,
+    getCurrentStepIndex,
+    goToStep,
   };
 };
 
