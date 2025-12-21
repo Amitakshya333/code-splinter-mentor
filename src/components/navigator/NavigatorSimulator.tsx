@@ -2,12 +2,14 @@ import { useState } from "react";
 import { 
   X, Monitor, Terminal, Search, ChevronRight, 
   Server, Cloud, Database, Shield, Settings,
-  Play, CheckCircle2, AlertCircle, Info, DollarSign
+  Play, CheckCircle2, AlertCircle, Info, DollarSign,
+  ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { NavigatorStep } from "@/hooks/useNavigatorState";
+import { EnhancedPlatformSimulator, getAWSDeepLink } from "./PlatformSimulators";
 
 interface NavigatorSimulatorProps {
   isOpen: boolean;
@@ -111,22 +113,6 @@ const getSimulatedUI = (step: NavigatorStep | undefined, platform: string): Simu
     }
   }
   
-  // Docker simulations
-  if (platform === 'docker' || platform === 'containers') {
-    return [
-      { id: 'terminal', label: '$ docker ' + (action.includes('pull') ? 'pull nginx:latest' : action.includes('run') ? 'run -d -p 80:80 nginx' : action.includes('build') ? 'build -t myapp .' : 'ps'), type: 'input', action: step.action, highlighted: true },
-      { id: 'run-btn', label: 'Run Command', type: 'button', action: step.action },
-    ];
-  }
-  
-  // Git simulations
-  if (platform === 'git' || platform === 'github') {
-    return [
-      { id: 'terminal', label: '$ git ' + (action.includes('clone') ? 'clone https://github.com/user/repo.git' : action.includes('commit') ? 'commit -m "Initial commit"' : action.includes('push') ? 'push origin main' : 'status'), type: 'input', action: step.action, highlighted: true },
-      { id: 'run-btn', label: 'Execute', type: 'button', action: step.action },
-    ];
-  }
-  
   // Default
   return [
     { id: 'action-btn', label: step.title, type: 'button', action: step.action, highlighted: true },
@@ -164,6 +150,19 @@ export const NavigatorSimulator = ({
   const [selectedElements, setSelectedElements] = useState<string[]>([]);
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   
+  // Use enhanced simulators for Docker, GitHub, Git, Kubernetes
+  if (['docker', 'containers', 'github', 'git', 'kubernetes', 'devops'].includes(platform)) {
+    return (
+      <EnhancedPlatformSimulator
+        isOpen={isOpen}
+        onClose={onClose}
+        currentStep={currentStep}
+        onStepComplete={onStepComplete}
+        platform={platform}
+      />
+    );
+  }
+  
   if (!isOpen) return null;
   
   const elements = getSimulatedUI(currentStep, platform);
@@ -179,6 +178,13 @@ export const NavigatorSimulator = ({
           ? prev.filter(id => id !== element.id)
           : [...prev, element.id]
       );
+    }
+  };
+
+  const handleOpenRealConsole = () => {
+    if (currentStep) {
+      const url = getAWSDeepLink(currentStep.action);
+      window.open(url, '_blank');
     }
   };
 
@@ -200,10 +206,17 @@ export const NavigatorSimulator = ({
             </div>
             <div className="flex-1 flex items-center gap-2 bg-background/50 rounded-lg px-3 py-1.5">
               <Search className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">
-                {platform === 'aws' ? 'console.aws.amazon.com' : platform === 'docker' ? 'hub.docker.com' : 'github.com'}
-              </span>
+              <span className="text-sm text-muted-foreground">console.aws.amazon.com</span>
             </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleOpenRealConsole}
+              className="gap-2"
+            >
+              <ExternalLink className="w-4 h-4" />
+              Open Real AWS Console
+            </Button>
             <Button variant="ghost" size="sm" onClick={onClose}>
               <X className="w-4 h-4" />
             </Button>
@@ -217,7 +230,7 @@ export const NavigatorSimulator = ({
                 <Cloud className="w-8 h-8 text-primary" />
                 <div>
                   <h2 className="text-lg font-semibold">
-                    {platform.toUpperCase()} Console Simulator
+                    AWS Console Simulator
                   </h2>
                   <p className="text-sm text-muted-foreground">
                     Practice mode - No real resources will be created
@@ -332,7 +345,7 @@ export const NavigatorSimulator = ({
             
             {/* Help Text */}
             <p className="text-center text-sm text-muted-foreground mt-8">
-              Click the highlighted option to progress to the next step
+              Click the highlighted option to progress, or use "Open Real AWS Console" to practice on AWS
             </p>
           </div>
         </div>
