@@ -1,11 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigatorState } from "@/hooks/useNavigatorState";
+import { useNavigatorProgress } from "@/hooks/useNavigatorProgress";
 import { NavigatorHeader } from "@/components/navigator/NavigatorHeader";
 import { NavigatorHero } from "@/components/navigator/NavigatorHero";
 import { NavigatorSteps } from "@/components/navigator/NavigatorSteps";
-import { NavigatorMentor } from "@/components/navigator/NavigatorMentor";
 import { NavigatorWorkspace } from "@/components/navigator/NavigatorWorkspace";
 import { NavigatorCategoryNav } from "@/components/navigator/NavigatorCategoryNav";
+import { NavigatorAIMentor } from "@/components/navigator/NavigatorAIMentor";
+import { NavigatorSimulator } from "@/components/navigator/NavigatorSimulator";
+import { NavigatorQuiz } from "@/components/navigator/NavigatorQuiz";
+import { Button } from "@/components/ui/button";
+import { Monitor, Award, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
 
 const Navigator = () => {
   const {
@@ -21,15 +27,59 @@ const Navigator = () => {
     currentModule,
     changeCategory,
     changeModule,
+    categoryId,
+    moduleId,
   } = useNavigatorState();
 
+  const { getCurrentProgress, saveProgress, saveQuizResult } = useNavigatorProgress(categoryId, moduleId);
+
   const [showMentor, setShowMentor] = useState(false);
+  const [showSimulator, setShowSimulator] = useState(false);
+  const [showQuiz, setShowQuiz] = useState(false);
+  
   const currentStep = getCurrentStep();
   const currentStepIndex = getCurrentStepIndex();
   const completedCount = steps.filter(s => s.completed).length;
   const progress = steps.length > 0 ? (completedCount / steps.length) * 100 : 0;
-
   const goal = currentModule?.name || "Explore";
+
+  // Load saved progress
+  useEffect(() => {
+    const saved = getCurrentProgress();
+    if (saved && saved.currentStepIndex > 0) {
+      goToStep(saved.currentStepIndex);
+      toast.info("Resumed from where you left off");
+    }
+  }, [moduleId]);
+
+  // Save progress on step change
+  useEffect(() => {
+    const completedStepIds = steps.filter(s => s.completed).map(s => s.id);
+    if (completedStepIds.length > 0 || currentStepIndex > 0) {
+      saveProgress(completedStepIds, currentStepIndex);
+    }
+  }, [currentStepIndex, steps]);
+
+  // Show quiz when module complete
+  useEffect(() => {
+    if (completedCount === steps.length && steps.length > 0) {
+      setTimeout(() => {
+        toast.success("Module complete! Take a quiz to test your knowledge.", {
+          action: {
+            label: "Take Quiz",
+            onClick: () => setShowQuiz(true),
+          },
+        });
+      }, 1000);
+    }
+  }, [completedCount, steps.length]);
+
+  const handleQuizComplete = (passed: boolean, score: number) => {
+    saveQuizResult(moduleId, passed, score);
+    if (passed) {
+      toast.success(`Great job! You passed with ${score} correct answers.`);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -60,6 +110,28 @@ const Navigator = () => {
             totalSteps={steps.length}
           />
 
+          {/* Action Buttons */}
+          <div className="flex justify-center gap-3 mb-6">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowSimulator(true)}
+              className="gap-2"
+            >
+              <Monitor className="w-4 h-4" />
+              Open Simulator
+            </Button>
+            {completedCount === steps.length && steps.length > 0 && (
+              <Button 
+                variant="outline"
+                onClick={() => setShowQuiz(true)}
+                className="gap-2"
+              >
+                <Award className="w-4 h-4" />
+                Take Quiz
+              </Button>
+            )}
+          </div>
+
           <NavigatorSteps 
             steps={steps} 
             currentStep={currentStep}
@@ -74,11 +146,30 @@ const Navigator = () => {
           />
         </main>
 
-        <NavigatorMentor 
-          messages={mentorMessages}
-          currentHint={currentStep?.description}
+        <NavigatorAIMentor 
           isOpen={showMentor}
           onClose={() => setShowMentor(false)}
+          currentStep={currentStep}
+          stepIndex={currentStepIndex}
+          totalSteps={steps.length}
+          completedSteps={steps.filter(s => s.completed).map(s => s.title)}
+          platform={platform}
+          moduleName={currentModule?.name || 'Navigator'}
+        />
+
+        <NavigatorSimulator
+          isOpen={showSimulator}
+          onClose={() => setShowSimulator(false)}
+          currentStep={currentStep}
+          onStepComplete={completeAction}
+          platform={categoryId}
+        />
+
+        <NavigatorQuiz
+          isOpen={showQuiz}
+          onClose={() => setShowQuiz(false)}
+          moduleName={currentModule?.name || 'General'}
+          onComplete={handleQuizComplete}
         />
       </div>
     </div>
