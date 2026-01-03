@@ -40,7 +40,9 @@ export const NavigatorHeader = ({
   const handleSignOut = async () => {
     try {
       await signOut();
-      navigate("/auth/login");
+      // Redirect to landing page or reload - user will authenticate there
+      // You can update this URL to match your landing page
+      window.location.href = window.location.origin;
     } catch (error) {
       console.error("Error signing out:", error);
     }

@@ -31,7 +31,8 @@ export default function WorkflowsPage() {
       try {
         const user = await getCurrentUser();
         if (!user) {
-          navigate("/auth/login");
+          // User not authenticated - they should authenticate on landing page
+          setIsLoading(false);
           return;
         }
 
