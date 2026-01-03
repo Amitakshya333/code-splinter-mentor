@@ -9,11 +9,19 @@ import { NavigatorCategoryNav } from "@/components/navigator/NavigatorCategoryNa
 import { NavigatorAIMentor } from "@/components/navigator/NavigatorAIMentor";
 import { NavigatorSimulator } from "@/components/navigator/NavigatorSimulator";
 import { NavigatorQuiz } from "@/components/navigator/NavigatorQuiz";
+import { UpgradeModal } from "@/components/freemium/UpgradeModal";
+import { CheckoutButton } from "@/components/stripe/CheckoutButton";
 import { Button } from "@/components/ui/button";
 import { Monitor, Award, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { checkWorkflowLimit, recordWorkflowCompletion } from "@/lib/freemium";
+import { getWorkflowIdFromModuleId } from "@/lib/workflows";
+import { markWorkflowComplete } from "@/lib/workflowProgress";
+import { getCurrentUser } from "@/lib/auth";
+import { useNavigate } from "react-router-dom";
 
 const Navigator = () => {
+  const navigate = useNavigate();
   const {
     platform,
     steps,
@@ -36,6 +44,8 @@ const Navigator = () => {
   const [showMentor, setShowMentor] = useState(false);
   const [showSimulator, setShowSimulator] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [canStartWorkflow, setCanStartWorkflow] = useState(true);
   
   const currentStep = getCurrentStep();
   const currentStepIndex = getCurrentStepIndex();
@@ -60,9 +70,50 @@ const Navigator = () => {
     }
   }, [currentStepIndex, steps]);
 
-  // Show quiz when module complete
+  // Check freemium limit on mount and when module changes
+  useEffect(() => {
+    const checkLimit = async () => {
+      const canStart = await checkWorkflowLimit();
+      setCanStartWorkflow(canStart);
+      if (!canStart) {
+        setShowUpgradeModal(true);
+      }
+    };
+    checkLimit();
+  }, [moduleId]);
+
+  // Show quiz when module complete and record completion
   useEffect(() => {
     if (completedCount === steps.length && steps.length > 0) {
+      // Record workflow completion for freemium tracking
+      const recordCompletion = async () => {
+        try {
+          const user = await getCurrentUser();
+          if (!user) return;
+
+          const workflowId = await getWorkflowIdFromModuleId(moduleId);
+          if (!workflowId) return;
+
+          // Mark workflow as complete in user_progress
+          await markWorkflowComplete(user.id, workflowId);
+          
+          // Record completion for freemium tracking
+          await recordWorkflowCompletion(workflowId);
+
+          // Check if user needs to upgrade
+          const canStart = await checkWorkflowLimit();
+          setCanStartWorkflow(canStart);
+          
+          if (!canStart) {
+            setShowUpgradeModal(true);
+          }
+        } catch (error) {
+          console.error("Error recording workflow completion:", error);
+        }
+      };
+
+      recordCompletion();
+
       setTimeout(() => {
         toast.success("Module complete! Take a quiz to test your knowledge.", {
           action: {
@@ -72,13 +123,18 @@ const Navigator = () => {
         });
       }, 1000);
     }
-  }, [completedCount, steps.length]);
+  }, [completedCount, steps.length, moduleId]);
 
   const handleQuizComplete = (passed: boolean, score: number) => {
     saveQuizResult(moduleId, passed, score);
     if (passed) {
       toast.success(`Great job! You passed with ${score} correct answers.`);
     }
+  };
+
+  const handleUpgrade = () => {
+    // Checkout will be handled by CheckoutButton in UpgradeModal
+    // Just close modal, button will handle redirect
   };
 
   return (
@@ -116,6 +172,7 @@ const Navigator = () => {
               variant="outline" 
               onClick={() => setShowSimulator(true)}
               className="gap-2"
+              disabled={!canStartWorkflow}
             >
               <Monitor className="w-4 h-4" />
               Open Simulator
@@ -131,6 +188,26 @@ const Navigator = () => {
               </Button>
             )}
           </div>
+
+          {!canStartWorkflow && (
+            <div className="mb-6 p-4 border border-destructive/50 bg-destructive/10 rounded-lg">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium text-destructive">Workflow Limit Reached</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    You've completed your free workflow. Upgrade to Pro to access unlimited workflows.
+                  </p>
+                  <CheckoutButton
+                    size="sm"
+                    className="mt-3"
+                  >
+                    Upgrade to Pro
+                  </CheckoutButton>
+                </div>
+              </div>
+            </div>
+          )}
 
           <NavigatorSteps 
             steps={steps} 
@@ -170,6 +247,12 @@ const Navigator = () => {
           onClose={() => setShowQuiz(false)}
           moduleName={currentModule?.name || 'General'}
           onComplete={handleQuizComplete}
+        />
+
+        <UpgradeModal
+          open={showUpgradeModal}
+          onOpenChange={setShowUpgradeModal}
+          onUpgrade={handleUpgrade}
         />
       </div>
     </div>
