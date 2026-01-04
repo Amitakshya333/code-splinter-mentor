@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { NavigatorCategory, NavigatorModule } from "@/data/navigatorModules";
 import { 
   Cloud, Workflow, Container, Activity, Shield, GitBranch, 
-  Database, FileCode, ChevronDown 
+  Database, FileCode, ChevronDown, Check, Sparkles
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -33,71 +33,115 @@ export const NavigatorCategoryNav = ({
   onModuleChange,
 }: NavigatorCategoryNavProps) => {
   const Icon = currentCategory ? iconMap[currentCategory.icon] || Cloud : Cloud;
-
-  // Get all modules from current category
   const allModules = currentCategory?.subCategories.flatMap(sc => sc.modules) || [];
 
   return (
-    <div className="border-b border-border/50 bg-background/50 backdrop-blur-sm">
-      <div className="max-w-5xl mx-auto px-6">
-        {/* Category Dropdown */}
-        <div className="flex items-center gap-4 py-3">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2 rounded-full">
-                <Icon className="w-4 h-4" />
-                {currentCategory?.name || 'Select Category'}
-                <ChevronDown className="w-4 h-4 opacity-50" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56 bg-popover">
-              {categories.map((cat) => {
-                const CatIcon = iconMap[cat.icon] || Cloud;
-                return (
-                  <DropdownMenuItem
-                    key={cat.id}
-                    onClick={() => onCategoryChange(cat.id)}
-                    className={cn(
-                      "gap-2 cursor-pointer",
-                      currentCategory?.id === cat.id && "bg-accent"
-                    )}
-                  >
-                    <CatIcon className="w-4 h-4" />
-                    {cat.name}
-                  </DropdownMenuItem>
-                );
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
+    <div className="sticky top-16 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6">
+        {/* Category Header */}
+        <div className="flex items-center justify-between py-3">
+          <div className="flex items-center gap-3">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  className="gap-2 rounded-xl h-10 px-4 bg-card shadow-sm hover:shadow-md transition-all"
+                >
+                  <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                    <Icon className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <span className="font-medium">{currentCategory?.name || 'Select Category'}</span>
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-64 p-2">
+                {categories.map((cat) => {
+                  const CatIcon = iconMap[cat.icon] || Cloud;
+                  const isSelected = currentCategory?.id === cat.id;
+                  return (
+                    <DropdownMenuItem
+                      key={cat.id}
+                      onClick={() => onCategoryChange(cat.id)}
+                      className={cn(
+                        "gap-3 cursor-pointer rounded-lg py-2.5 px-3",
+                        isSelected && "bg-primary/10"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-8 h-8 rounded-lg flex items-center justify-center",
+                        isSelected ? "bg-primary/20" : "bg-muted"
+                      )}>
+                        <CatIcon className={cn(
+                          "w-4 h-4",
+                          isSelected ? "text-primary" : "text-muted-foreground"
+                        )} />
+                      </div>
+                      <div className="flex-1">
+                        <p className={cn(
+                          "font-medium",
+                          isSelected && "text-primary"
+                        )}>{cat.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {cat.subCategories.flatMap(sc => sc.modules).length} modules
+                        </p>
+                      </div>
+                      {isSelected && (
+                        <Check className="w-4 h-4 text-primary" />
+                      )}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-          {currentCategory && (
-            <span className="text-sm text-muted-foreground">
-              {currentCategory.subCategories.length} sections • {allModules.length} modules
-            </span>
-          )}
+            {currentCategory && (
+              <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
+                <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+                <span>{allModules.length} modules available</span>
+              </div>
+            )}
+          </div>
+
+          {/* Quick stats */}
+          <div className="hidden md:flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-info-muted rounded-full">
+              <Sparkles className="w-3 h-3 text-info" />
+              <span className="text-xs font-medium text-info">New content weekly</span>
+            </div>
+          </div>
         </div>
 
-        {/* Module Ribbon */}
+        {/* Module Pills */}
         {allModules.length > 0 && (
-          <ScrollArea className="pb-3">
-            <div className="flex gap-2">
-              {allModules.map((mod) => (
-                <button
-                  key={mod.id}
-                  onClick={() => onModuleChange(mod.id)}
-                  className={cn(
-                    "px-4 py-2 text-sm font-medium rounded-full whitespace-nowrap transition-all",
-                    currentModule?.id === mod.id
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  )}
-                >
-                  {mod.name}
-                </button>
-              ))}
-            </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
+          <div className="pb-3">
+            <ScrollArea className="w-full">
+              <div className="flex gap-2 pb-1">
+                {allModules.map((mod, index) => {
+                  const isSelected = currentModule?.id === mod.id;
+                  return (
+                    <button
+                      key={mod.id}
+                      onClick={() => onModuleChange(mod.id)}
+                      className={cn(
+                        "relative px-4 py-2 text-sm font-medium rounded-xl whitespace-nowrap transition-all duration-200",
+                        "border shadow-sm",
+                        isSelected
+                          ? "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20"
+                          : "bg-card text-muted-foreground border-border hover:border-primary/30 hover:text-foreground hover:shadow-md"
+                      )}
+                      style={{ animationDelay: `${index * 30}ms` }}
+                    >
+                      {mod.name}
+                      {isSelected && (
+                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-success rounded-full ring-2 ring-background" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              <ScrollBar orientation="horizontal" className="h-1.5" />
+            </ScrollArea>
+          </div>
         )}
       </div>
     </div>
