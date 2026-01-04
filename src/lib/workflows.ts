@@ -1,4 +1,7 @@
-import { supabase } from "@/integrations/supabase/client";
+/**
+ * Workflow utilities - MVP using local data from navigatorModules
+ * Database tables not yet created, using static module data
+ */
 
 export interface Workflow {
   id: string;
@@ -23,88 +26,46 @@ export interface Step {
 }
 
 /**
- * Map moduleId to workflow name (for MVP, we only have EC2 Management)
- * This will be replaced with a proper lookup table in the future
- */
-const MODULE_TO_WORKFLOW_NAME: Record<string, string> = {
-  "ec2-management": "EC2 Management",
-};
-
-/**
- * Get workflow ID from module ID
+ * Map moduleId to workflow ID (for MVP, we use module ID as workflow ID)
  */
 export async function getWorkflowIdFromModuleId(
   moduleId: string
 ): Promise<string | null> {
-  const workflowName = MODULE_TO_WORKFLOW_NAME[moduleId];
-  if (!workflowName) return null;
-
-  const { data, error } = await supabase
-    .from("workflows")
-    .select("id")
-    .eq("name", workflowName)
-    .single();
-
-  if (error || !data) return null;
-  return data.id;
+  // For MVP, moduleId IS the workflowId
+  return moduleId;
 }
 
 /**
- * Get all workflows
+ * Get all workflows - placeholder for future DB integration
  */
 export async function getAllWorkflows(): Promise<Workflow[]> {
-  const { data, error } = await supabase
-    .from("workflows")
-    .select("*")
-    .order("created_at", { ascending: true });
-
-  if (error) throw error;
-  return data || [];
+  // MVP: Return empty - workflows come from navigatorModules.ts
+  return [];
 }
 
 /**
- * Get workflow by ID
+ * Get workflow by ID - placeholder for future DB integration
  */
 export async function getWorkflowById(workflowId: string): Promise<Workflow | null> {
-  const { data, error } = await supabase
-    .from("workflows")
-    .select("*")
-    .eq("id", workflowId)
-    .single();
-
-  if (error) {
-    if (error.code === "PGRST116") return null;
-    throw error;
-  }
-
-  return data;
+  // MVP: Return null - workflow data comes from navigatorModules.ts
+  return null;
 }
 
 /**
- * Get all steps for a workflow
+ * Get all steps for a workflow - placeholder for future DB integration
  */
 export async function getWorkflowSteps(workflowId: string): Promise<Step[]> {
-  const { data, error } = await supabase
-    .from("steps")
-    .select("*")
-    .eq("workflow_id", workflowId)
-    .order("order_number", { ascending: true });
-
-  if (error) throw error;
-  return data || [];
+  // MVP: Return empty - steps come from navigatorModules.ts
+  return [];
 }
 
 /**
- * Get workflow with steps
+ * Get workflow with steps - placeholder for future DB integration
  */
 export async function getWorkflowWithSteps(workflowId: string): Promise<{
   workflow: Workflow;
   steps: Step[];
 } | null> {
-  const workflow = await getWorkflowById(workflowId);
-  if (!workflow) return null;
-
-  const steps = await getWorkflowSteps(workflowId);
-  return { workflow, steps };
+  // MVP: Return null - data comes from navigatorModules.ts
+  return null;
 }
-

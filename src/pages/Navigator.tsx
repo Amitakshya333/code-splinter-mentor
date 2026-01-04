@@ -9,19 +9,19 @@ import { NavigatorCategoryNav } from "@/components/navigator/NavigatorCategoryNa
 import { NavigatorAIMentor } from "@/components/navigator/NavigatorAIMentor";
 import { NavigatorSimulator } from "@/components/navigator/NavigatorSimulator";
 import { NavigatorQuiz } from "@/components/navigator/NavigatorQuiz";
+import { RouteVisualization } from "@/components/navigator/RouteVisualization";
 import { UpgradeModal } from "@/components/freemium/UpgradeModal";
 import { CheckoutButton } from "@/components/stripe/CheckoutButton";
 import { Button } from "@/components/ui/button";
-import { Monitor, Award, AlertTriangle } from "lucide-react";
+import { Monitor, Award, AlertTriangle, MessageCircle, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { checkWorkflowLimit, recordWorkflowCompletion } from "@/lib/freemium";
 import { getWorkflowIdFromModuleId } from "@/lib/workflows";
 import { markWorkflowComplete } from "@/lib/workflowProgress";
 import { getCurrentUser } from "@/lib/auth";
-import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 const Navigator = () => {
-  const navigate = useNavigate();
   const {
     platform,
     steps,
@@ -52,6 +52,7 @@ const Navigator = () => {
   const completedCount = steps.filter(s => s.completed).length;
   const progress = steps.length > 0 ? (completedCount / steps.length) * 100 : 0;
   const goal = currentModule?.name || "Explore";
+  const isComplete = completedCount === steps.length && steps.length > 0;
 
   // Load saved progress
   useEffect(() => {
@@ -85,7 +86,6 @@ const Navigator = () => {
   // Show quiz when module complete and record completion
   useEffect(() => {
     if (completedCount === steps.length && steps.length > 0) {
-      // Record workflow completion for freemium tracking
       const recordCompletion = async () => {
         try {
           const user = await getCurrentUser();
@@ -94,13 +94,9 @@ const Navigator = () => {
           const workflowId = await getWorkflowIdFromModuleId(moduleId);
           if (!workflowId) return;
 
-          // Mark workflow as complete in user_progress
           await markWorkflowComplete(user.id, workflowId);
-          
-          // Record completion for freemium tracking
           await recordWorkflowCompletion(workflowId);
 
-          // Check if user needs to upgrade
           const canStart = await checkWorkflowLimit();
           setCanStartWorkflow(canStart);
           
@@ -132,15 +128,17 @@ const Navigator = () => {
     }
   };
 
-  const handleUpgrade = () => {
-    // Checkout will be handled by CheckoutButton in UpgradeModal
-    // Just close modal, button will handle redirect
+  const handleContinue = () => {
+    // Scroll to current step
+    document.getElementById('workspace-section')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[600px] bg-gradient-to-b from-primary/5 to-transparent rounded-full blur-3xl" />
+    <div className="min-h-screen bg-gradient-hero">
+      {/* Ambient background effects */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-glow opacity-50" />
+        <div className="absolute bottom-0 right-0 w-[600px] h-[400px] bg-gradient-to-tl from-success/5 to-transparent rounded-full blur-3xl" />
       </div>
 
       <div className="relative">
@@ -157,31 +155,48 @@ const Navigator = () => {
           onModuleChange={changeModule}
         />
 
-        <main className="max-w-4xl mx-auto px-6 py-8">
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+          {/* Hero Section */}
           <NavigatorHero 
             goal={goal} 
             platform={platform}
             progress={progress}
             completedCount={completedCount}
             totalSteps={steps.length}
+            onContinue={handleContinue}
           />
 
-          {/* Action Buttons */}
-          <div className="flex justify-center gap-3 mb-6">
+          {/* Route Visualization */}
+          <RouteVisualization
+            steps={steps.map(s => ({ id: s.id, title: s.title, completed: s.completed }))}
+            currentStepIndex={currentStepIndex}
+            onStepClick={goToStep}
+          />
+
+          {/* Quick Actions */}
+          <div className="flex flex-wrap justify-center gap-3 mb-8">
             <Button 
               variant="outline" 
               onClick={() => setShowSimulator(true)}
-              className="gap-2"
+              className="gap-2 bg-card hover:bg-card/80 shadow-sm hover:shadow-md transition-all"
               disabled={!canStartWorkflow}
             >
               <Monitor className="w-4 h-4" />
               Open Simulator
             </Button>
-            {completedCount === steps.length && steps.length > 0 && (
+            <Button 
+              variant="outline"
+              onClick={() => setShowMentor(true)}
+              className="gap-2 bg-card hover:bg-card/80 shadow-sm hover:shadow-md transition-all"
+            >
+              <MessageCircle className="w-4 h-4" />
+              Ask AI Mentor
+            </Button>
+            {isComplete && (
               <Button 
                 variant="outline"
                 onClick={() => setShowQuiz(true)}
-                className="gap-2"
+                className="gap-2 bg-success/10 border-success/30 text-success hover:bg-success/20 hover:text-success"
               >
                 <Award className="w-4 h-4" />
                 Take Quiz
@@ -189,19 +204,19 @@ const Navigator = () => {
             )}
           </div>
 
+          {/* Freemium warning */}
           {!canStartWorkflow && (
-            <div className="mb-6 p-4 border border-destructive/50 bg-destructive/10 rounded-lg">
+            <div className="mb-8 p-4 rounded-xl border border-destructive/30 bg-destructive/5 shadow-sm">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-destructive mt-0.5" />
+                <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                </div>
                 <div className="flex-1">
-                  <p className="font-medium text-destructive">Workflow Limit Reached</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    You've completed your free workflow. Upgrade to Pro to access unlimited workflows.
+                  <p className="font-semibold text-destructive mb-1">Workflow Limit Reached</p>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    You've completed your free workflow. Upgrade to Pro to access unlimited workflows and advanced features.
                   </p>
-                  <CheckoutButton
-                    size="sm"
-                    className="mt-3"
-                  >
+                  <CheckoutButton size="sm">
                     Upgrade to Pro
                   </CheckoutButton>
                 </div>
@@ -209,20 +224,30 @@ const Navigator = () => {
             </div>
           )}
 
-          <NavigatorSteps 
-            steps={steps} 
-            currentStep={currentStep}
-          />
-
-          <NavigatorWorkspace
-            steps={steps}
-            currentStep={currentStep}
-            currentStepIndex={currentStepIndex}
-            onAction={completeAction}
-            onStepClick={goToStep}
-          />
+          {/* Workspace Section */}
+          <section id="workspace-section" className="scroll-mt-24">
+            <NavigatorWorkspace
+              steps={steps}
+              currentStep={currentStep}
+              currentStepIndex={currentStepIndex}
+              onAction={completeAction}
+              onStepClick={goToStep}
+            />
+          </section>
         </main>
 
+        {/* Floating AI Mentor Button */}
+        <button
+          onClick={() => setShowMentor(!showMentor)}
+          className={cn(
+            "fab bottom-6 right-6 w-14 h-14 bg-primary text-primary-foreground flex items-center justify-center",
+            showMentor && "bg-primary/80"
+          )}
+        >
+          <Sparkles className="w-6 h-6" />
+        </button>
+
+        {/* Modals and panels */}
         <NavigatorAIMentor 
           isOpen={showMentor}
           onClose={() => setShowMentor(false)}
@@ -252,7 +277,7 @@ const Navigator = () => {
         <UpgradeModal
           open={showUpgradeModal}
           onOpenChange={setShowUpgradeModal}
-          onUpgrade={handleUpgrade}
+          onUpgrade={() => {}}
         />
       </div>
     </div>

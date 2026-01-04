@@ -1,4 +1,7 @@
-import { supabase } from "@/integrations/supabase/client";
+/**
+ * Workflow progress tracking - MVP using localStorage
+ * Database table not yet created, using client-side storage
+ */
 
 export interface WorkflowProgress {
   id?: string;
@@ -11,6 +14,32 @@ export interface WorkflowProgress {
   completed_at?: string | null;
 }
 
+const STORAGE_KEY = "codesplinter_progress";
+
+interface ProgressStorage {
+  [workflowId: string]: WorkflowProgress;
+}
+
+function getStorageData(): ProgressStorage {
+  try {
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (data) {
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error("Error reading progress storage:", error);
+  }
+  return {};
+}
+
+function saveStorageData(data: ProgressStorage): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (error) {
+    console.error("Error saving progress storage:", error);
+  }
+}
+
 /**
  * Save or update user progress for a workflow
  */
@@ -20,25 +49,23 @@ export async function saveProgress(
   currentStep: number,
   completedSteps: number[]
 ): Promise<WorkflowProgress> {
-  const { data, error } = await supabase
-    .from("user_progress")
-    .upsert(
-      {
-        user_id: userId,
-        workflow_id: workflowId,
-        current_step: currentStep,
-        completed_steps: completedSteps,
-        last_activity: new Date().toISOString(),
-      },
-      {
-        onConflict: "user_id,workflow_id",
-      }
-    )
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
+  const storage = getStorageData();
+  
+  const progress: WorkflowProgress = {
+    id: `${userId}_${workflowId}`,
+    user_id: userId,
+    workflow_id: workflowId,
+    current_step: currentStep,
+    completed_steps: completedSteps,
+    started_at: storage[workflowId]?.started_at || new Date().toISOString(),
+    last_activity: new Date().toISOString(),
+    completed_at: storage[workflowId]?.completed_at || null,
+  };
+  
+  storage[workflowId] = progress;
+  saveStorageData(storage);
+  
+  return progress;
 }
 
 /**
@@ -48,22 +75,8 @@ export async function loadProgress(
   userId: string,
   workflowId: string
 ): Promise<WorkflowProgress | null> {
-  const { data, error } = await supabase
-    .from("user_progress")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("workflow_id", workflowId)
-    .single();
-
-  if (error) {
-    if (error.code === "PGRST116") {
-      // No rows returned
-      return null;
-    }
-    throw error;
-  }
-
-  return data;
+  const storage = getStorageData();
+  return storage[workflowId] || null;
 }
 
 /**
@@ -85,16 +98,12 @@ export async function markWorkflowComplete(
   userId: string,
   workflowId: string
 ): Promise<void> {
-  const { error } = await supabase
-    .from("user_progress")
-    .update({
-      completed_at: new Date().toISOString(),
-      last_activity: new Date().toISOString(),
-    })
-    .eq("user_id", userId)
-    .eq("workflow_id", workflowId);
-
-  if (error) throw error;
+  const storage = getStorageData();
+  if (storage[workflowId]) {
+    storage[workflowId].completed_at = new Date().toISOString();
+    storage[workflowId].last_activity = new Date().toISOString();
+    saveStorageData(storage);
+  }
 }
 
 /**
@@ -103,14 +112,8 @@ export async function markWorkflowComplete(
 export async function getUserWorkflowProgress(
   userId: string
 ): Promise<WorkflowProgress[]> {
-  const { data, error } = await supabase
-    .from("user_progress")
-    .select("*")
-    .eq("user_id", userId)
-    .order("last_activity", { ascending: false });
-
-  if (error) throw error;
-  return data || [];
+  const storage = getStorageData();
+  return Object.values(storage).filter(p => p.user_id === userId);
 }
 
 /**
@@ -131,4 +134,3 @@ export function createOptimisticProgress(
     last_activity: new Date().toISOString(),
   };
 }
-

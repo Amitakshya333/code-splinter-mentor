@@ -1,6 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { getCurrentUser } from '@/lib/auth';
 import { getWorkflowIdFromModuleId } from '@/lib/workflows';
 import { loadProgress, saveProgress as saveProgressToDb } from '@/lib/workflowProgress';
 
@@ -13,27 +11,34 @@ interface ProgressData {
   quizResults?: Record<string, { passed: boolean; score: number }>;
 }
 
+const STORAGE_KEY = "codesplinter_navigator_progress";
+
+// Generate a simple anonymous user ID for localStorage tracking
+function getAnonymousUserId(): string {
+  let userId = localStorage.getItem("codesplinter_anon_user");
+  if (!userId) {
+    userId = `anon_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    localStorage.setItem("codesplinter_anon_user", userId);
+  }
+  return userId;
+}
+
 export const useNavigatorProgress = (categoryId: string, moduleId: string) => {
   const [progress, setProgress] = useState<ProgressData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load progress from Supabase on mount
+  // Load progress from localStorage on mount
   useEffect(() => {
-    const loadProgressFromDb = async () => {
+    const loadProgressFromStorage = async () => {
       try {
-        const user = await getCurrentUser();
-        if (!user) {
-          setIsLoading(false);
-          return;
-        }
-
+        const userId = getAnonymousUserId();
         const workflowId = await getWorkflowIdFromModuleId(moduleId);
         if (!workflowId) {
           setIsLoading(false);
           return;
         }
 
-        const dbProgress = await loadProgress(user.id, workflowId);
+        const dbProgress = await loadProgress(userId, workflowId);
         if (dbProgress) {
           // Convert database progress to Navigator format
           setProgress({
@@ -42,7 +47,7 @@ export const useNavigatorProgress = (categoryId: string, moduleId: string) => {
             completedSteps: dbProgress.completed_steps.map(s => s.toString()),
             currentStepIndex: dbProgress.current_step - 1, // Convert to 0-based index
             lastUpdated: new Date(dbProgress.last_activity || dbProgress.started_at || ''),
-            quizResults: {}, // Quiz results not stored in DB yet
+            quizResults: {}, // Quiz results not stored yet
           });
         }
       } catch (error) {
@@ -52,7 +57,7 @@ export const useNavigatorProgress = (categoryId: string, moduleId: string) => {
       }
     };
 
-    loadProgressFromDb();
+    loadProgressFromStorage();
   }, [categoryId, moduleId]);
 
   const getCurrentProgress = useCallback((): ProgressData | null => {
@@ -61,19 +66,14 @@ export const useNavigatorProgress = (categoryId: string, moduleId: string) => {
 
   const saveProgress = useCallback(async (completedSteps: string[], currentStepIndex: number) => {
     try {
-      const user = await getCurrentUser();
-      if (!user) {
-        console.warn('Cannot save progress: user not authenticated');
-        return;
-      }
-
+      const userId = getAnonymousUserId();
       const workflowId = await getWorkflowIdFromModuleId(moduleId);
       if (!workflowId) {
         console.warn('Cannot save progress: workflow not found');
         return;
       }
 
-      // Convert string step IDs to numbers for database
+      // Convert string step IDs to numbers for storage
       const completedStepsNumbers = completedSteps.map(s => parseInt(s, 10)).filter(n => !isNaN(n));
 
       // Update local state optimistically
@@ -87,21 +87,20 @@ export const useNavigatorProgress = (categoryId: string, moduleId: string) => {
       };
       setProgress(newProgress);
 
-      // Save to database
+      // Save to localStorage
       await saveProgressToDb(
-        user.id,
+        userId,
         workflowId,
         currentStepIndex + 1, // Convert to 1-based index
         completedStepsNumbers
       );
     } catch (error) {
       console.error('Error saving progress:', error);
-      // Rollback on error - could restore previous progress here
     }
   }, [categoryId, moduleId, progress]);
 
   const saveQuizResult = useCallback((quizId: string, passed: boolean, score: number) => {
-    // Quiz results stored locally for now (not in DB schema yet)
+    // Quiz results stored locally for now
     setProgress(prev => prev ? {
       ...prev,
       quizResults: {
@@ -113,20 +112,14 @@ export const useNavigatorProgress = (categoryId: string, moduleId: string) => {
 
   const resetProgress = useCallback(async () => {
     try {
-      const user = await getCurrentUser();
-      if (!user) return;
-
       const workflowId = await getWorkflowIdFromModuleId(moduleId);
       if (!workflowId) return;
 
-      // Delete progress from database
-      const { error } = await supabase
-        .from('user_progress')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('workflow_id', workflowId);
-
-      if (error) throw error;
+      // Clear from localStorage
+      const storage = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+      delete storage[workflowId];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(storage));
+      
       setProgress(null);
     } catch (error) {
       console.error('Error resetting progress:', error);
@@ -134,7 +127,7 @@ export const useNavigatorProgress = (categoryId: string, moduleId: string) => {
   }, [moduleId]);
 
   const getOverallProgress = useCallback(() => {
-    // For MVP, we only track one workflow, so return simple stats
+    // For MVP, return simple stats
     return {
       totalModules: 1,
       completedModules: progress && progress.completedSteps.length > 0 ? 1 : 0,

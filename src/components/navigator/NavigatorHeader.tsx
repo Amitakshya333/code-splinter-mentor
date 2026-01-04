@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Compass, Sparkles, MessageCircle, Code2, User, Settings, LogOut } from "lucide-react";
+import { Compass, MessageCircle, Code2, Settings, LogOut, Map } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link, useNavigate } from "react-router-dom";
 import { UsageCounter } from "@/components/freemium/UsageCounter";
@@ -26,6 +26,7 @@ export const NavigatorHeader = ({
 }: NavigatorHeaderProps) => {
   const navigate = useNavigate();
   const [userEmail, setUserEmail] = useState<string>("");
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -37,11 +38,17 @@ export const NavigatorHeader = ({
     loadUser();
   }, []);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const handleSignOut = async () => {
     try {
       await signOut();
-      // Redirect to landing page or reload - user will authenticate there
-      // You can update this URL to match your landing page
       window.location.href = window.location.origin;
     } catch (error) {
       console.error("Error signing out:", error);
@@ -56,95 +63,117 @@ export const NavigatorHeader = ({
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
-      <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+    <header className={cn(
+      "sticky top-0 z-50 transition-all duration-300",
+      isScrolled 
+        ? "bg-background/95 backdrop-blur-xl border-b border-border shadow-sm" 
+        : "bg-transparent border-b border-transparent"
+    )}>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         {/* Logo */}
-        <div className="flex items-center gap-3">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/20">
-              <Compass className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-base font-semibold text-foreground tracking-tight">Navigator</span>
-              <span className="px-1.5 py-0.5 text-[10px] font-medium bg-primary/10 text-primary rounded-full">
-                Beta
-              </span>
-            </div>
-          </Link>
+        <Link to="/" className="flex items-center gap-3 group">
+          <div className={cn(
+            "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300",
+            "bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/25",
+            "group-hover:shadow-xl group-hover:shadow-primary/30 group-hover:scale-105"
+          )}>
+            <Map className="w-5 h-5 text-primary-foreground" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-lg font-bold text-foreground tracking-tight leading-none">
+              CodeSplinter
+            </span>
+            <span className="text-2xs text-muted-foreground font-medium">
+              Navigator
+            </span>
+          </div>
+        </Link>
+
+        {/* Center: Breadcrumb / Status */}
+        <div className="hidden md:flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-success-muted rounded-full">
+            <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+            <span className="text-xs font-medium text-success">Learning Mode</span>
+          </div>
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <Button
             variant="ghost"
             size="sm"
             onClick={onMentorToggle}
             className={cn(
-              "gap-2 rounded-full h-8",
-              showMentor && "bg-primary/10 text-primary"
+              "gap-2 rounded-full h-9 px-3 transition-all",
+              showMentor 
+                ? "bg-primary text-primary-foreground shadow-md" 
+                : "hover:bg-primary/10"
             )}
           >
             <MessageCircle className="w-4 h-4" />
-            <span className="hidden sm:inline text-sm">AI Mentor</span>
+            <span className="hidden sm:inline text-sm font-medium">Mentor</span>
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-            className="gap-2 rounded-full h-8"
-          >
-            <Link to="/ide">
-              <Code2 className="w-4 h-4" />
-              <span className="hidden sm:inline text-sm">IDE</span>
-            </Link>
-          </Button>
+          
           <Button
             variant="ghost"
             size="sm"
             asChild
-            className="gap-2 rounded-full h-8"
+            className="gap-2 rounded-full h-9 px-3 hover:bg-secondary"
           >
-            <Link to="/workflows">
-              <span className="hidden sm:inline text-sm">Workflows</span>
+            <Link to="/ide">
+              <Code2 className="w-4 h-4" />
+              <span className="hidden sm:inline text-sm font-medium">IDE</span>
             </Link>
           </Button>
-          <UsageCounter />
-          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-secondary/50 rounded-full">
-            <Sparkles className="w-3 h-3 text-primary" />
-            <span className="text-xs font-medium text-muted-foreground">Learning</span>
+
+          <div className="hidden sm:block">
+            <UsageCounter />
           </div>
           
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="rounded-full h-8 w-8 p-0">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="text-xs">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="rounded-full h-9 w-9 p-0 hover:ring-2 hover:ring-primary/20 transition-all"
+              >
+                <Avatar className="h-9 w-9 border-2 border-border">
+                  <AvatarFallback className="text-xs font-semibold bg-gradient-to-br from-primary/20 to-primary/10">
                     {userEmail ? getInitials(userEmail) : "U"}
                   </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>
+            <DropdownMenuContent align="end" className="w-56 p-2">
+              <DropdownMenuLabel className="pb-2">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">Account</p>
+                  <p className="text-sm font-semibold leading-none">Account</p>
                   {userEmail && (
-                    <p className="text-xs leading-none text-muted-foreground">
+                    <p className="text-xs leading-none text-muted-foreground truncate">
                       {userEmail}
                     </p>
                   )}
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link to="/account/subscription" className="cursor-pointer">
+              <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+                <Link to="/account/subscription">
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Subscription</span>
                 </Link>
               </DropdownMenuItem>
+              <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+                <Link to="/workflows">
+                  <Compass className="mr-2 h-4 w-4" />
+                  <span>My Workflows</span>
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive">
+              <DropdownMenuItem 
+                onClick={handleSignOut} 
+                className="rounded-lg cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Sign out</span>
               </DropdownMenuItem>

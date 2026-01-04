@@ -4,8 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { getCurrentUser } from "@/lib/auth";
-import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
 interface Subscription {
@@ -13,6 +11,25 @@ interface Subscription {
   plan: "free" | "pro";
   status: "active" | "canceled" | "past_due";
   current_period_end: string | null;
+}
+
+const STORAGE_KEY = "codesplinter_subscription";
+
+function getSubscriptionFromStorage(): Subscription {
+  try {
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (data) {
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error("Error reading subscription:", error);
+  }
+  return {
+    id: "",
+    plan: "free",
+    status: "active",
+    current_period_end: null,
+  };
 }
 
 export default function SubscriptionPage() {
@@ -25,34 +42,8 @@ export default function SubscriptionPage() {
   useEffect(() => {
     const loadSubscription = async () => {
       try {
-        const user = await getCurrentUser();
-        if (!user) {
-          // User not authenticated - they should authenticate on landing page
-          setIsLoading(false);
-          return;
-        }
-
-        const { data, error } = await supabase
-          .from("subscriptions")
-          .select("*")
-          .eq("user_id", user.id)
-          .single();
-
-        if (error && error.code !== "PGRST116") {
-          throw error;
-        }
-
-        if (data) {
-          setSubscription(data);
-        } else {
-          // No subscription record means free plan
-          setSubscription({
-            id: "",
-            plan: "free",
-            status: "active",
-            current_period_end: null,
-          });
-        }
+        const data = getSubscriptionFromStorage();
+        setSubscription(data);
 
         // Check for success/cancel from Stripe
         if (searchParams.get("success") === "true") {
@@ -60,8 +51,6 @@ export default function SubscriptionPage() {
             title: "Payment successful!",
             description: "Your subscription is now active.",
           });
-          // Reload subscription status
-          window.location.reload();
         } else if (searchParams.get("canceled") === "true") {
           toast({
             title: "Payment canceled",
@@ -82,7 +71,7 @@ export default function SubscriptionPage() {
     };
 
     loadSubscription();
-  }, [navigate, searchParams, toast]);
+  }, [searchParams, toast]);
 
   if (isLoading) {
     return (
@@ -161,7 +150,6 @@ export default function SubscriptionPage() {
                   </p>
                   <Button
                     onClick={() => {
-                      // This will be handled by UpgradeModal or direct checkout
                       navigate("/");
                     }}
                   >
@@ -176,4 +164,3 @@ export default function SubscriptionPage() {
     </div>
   );
 }
-
