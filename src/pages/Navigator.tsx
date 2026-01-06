@@ -145,6 +145,11 @@ const Navigator = () => {
         <NavigatorHeader 
           onMentorToggle={() => setShowMentor(!showMentor)}
           showMentor={showMentor}
+          category={currentCategory?.name}
+          module={currentModule?.name}
+          currentStep={currentStepIndex}
+          totalSteps={steps.length}
+          progress={progress}
         />
 
         <NavigatorCategoryNav
@@ -265,6 +270,10 @@ const Navigator = () => {
           currentStep={currentStep}
           onStepComplete={completeAction}
           platform={categoryId}
+          onNeedHelp={() => {
+            setShowSimulator(false);
+            setShowMentor(true);
+          }}
         />
 
         <NavigatorQuiz

@@ -3,7 +3,8 @@ import {
   X, Terminal, Search, Play, CheckCircle2, Folder, 
   File, GitBranch, GitCommit, GitPullRequest, Star,
   Box, Layers, Server, RefreshCw, ExternalLink, Database,
-  Network, Package, FileCode, Eye, EyeOff, AlertCircle
+  Network, Package, FileCode, Eye, EyeOff, AlertCircle,
+  Maximize2, Minimize2, HelpCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -15,12 +16,13 @@ interface TerminalLine {
   delay?: number;
 }
 
-interface PlatformSimulatorsProps {
+export interface PlatformSimulatorsProps {
   isOpen: boolean;
   onClose: () => void;
   currentStep?: NavigatorStep;
   onStepComplete: (action: string) => void;
   platform: string;
+  onNeedHelp?: () => void;
 }
 
 // Docker Compose Visualization
@@ -141,7 +143,16 @@ const DockerComposeVisualization = ({
   );
 };
 
-// Docker Terminal Simulator with Compose
+// Command suggestions for autocomplete
+const DOCKER_COMMANDS = [
+  'docker ps', 'docker ps -a', 'docker images', 'docker pull', 'docker run',
+  'docker build', 'docker stop', 'docker start', 'docker rm', 'docker rmi',
+  'docker logs', 'docker exec', 'docker-compose up -d', 'docker-compose down',
+  'docker-compose logs -f', 'docker-compose ps', 'docker network ls', 
+  'docker volume ls', 'docker stats --no-stream'
+];
+
+// Docker Terminal Simulator with Compose and Autocomplete
 export const DockerTerminal = ({ 
   currentStep, 
   onStepComplete 
@@ -157,6 +168,8 @@ export const DockerTerminal = ({
   const [currentInput, setCurrentInput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [showCompose, setShowCompose] = useState(false);
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [autocompleteIndex, setAutocompleteIndex] = useState(0);
   const [services, setServices] = useState<DockerService[]>([
     { name: 'web', image: 'nginx:latest', status: 'stopped', ports: ['80:80'], depends_on: ['db', 'redis'] },
     { name: 'api', image: 'node:18-alpine', status: 'stopped', ports: ['3000:3000'], depends_on: ['db'] },
@@ -164,6 +177,42 @@ export const DockerTerminal = ({
     { name: 'redis', image: 'redis:7-alpine', status: 'stopped', ports: ['6379:6379'] },
   ]);
   const terminalRef = useRef<HTMLDivElement>(null);
+  
+  const filteredCommands = currentInput.trim() 
+    ? DOCKER_COMMANDS.filter(cmd => cmd.toLowerCase().startsWith(currentInput.toLowerCase()))
+    : [];
+  
+  const handleInputChange = (value: string) => {
+    setCurrentInput(value);
+    setShowAutocomplete(value.length > 0 && filteredCommands.length > 0);
+    setAutocompleteIndex(0);
+  };
+  
+  const selectAutocomplete = (cmd: string) => {
+    setCurrentInput(cmd);
+    setShowAutocomplete(false);
+  };
+  
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (showAutocomplete && filteredCommands.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setAutocompleteIndex(prev => (prev + 1) % filteredCommands.length);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setAutocompleteIndex(prev => (prev - 1 + filteredCommands.length) % filteredCommands.length);
+      } else if (e.key === 'Tab' || (e.key === 'Enter' && filteredCommands.length > 0 && currentInput !== filteredCommands[autocompleteIndex])) {
+        e.preventDefault();
+        selectAutocomplete(filteredCommands[autocompleteIndex]);
+      } else if (e.key === 'Escape') {
+        setShowAutocomplete(false);
+      } else if (e.key === 'Enter') {
+        executeCommand();
+      }
+    } else if (e.key === 'Enter') {
+      executeCommand();
+    }
+  };
   
   const getExpectedCommand = () => {
     if (!currentStep) return '';
@@ -401,18 +450,42 @@ export const DockerTerminal = ({
             </div>
           ))}
           
-          <div className="flex items-center gap-2">
+          <div className="relative flex items-center gap-2">
             <span className="text-green-400">$</span>
             <input
               type="text"
               value={currentInput}
-              onChange={(e) => setCurrentInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && executeCommand()}
+              onChange={(e) => handleInputChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setShowAutocomplete(currentInput.length > 0 && filteredCommands.length > 0)}
+              onBlur={() => setTimeout(() => setShowAutocomplete(false), 150)}
               className="flex-1 bg-transparent text-white outline-none"
               placeholder="Try: docker-compose up -d, docker ps, docker stats..."
               disabled={isRunning}
             />
             {isRunning && <RefreshCw className="w-4 h-4 text-blue-400 animate-spin" />}
+            
+            {/* Autocomplete Dropdown */}
+            {showAutocomplete && filteredCommands.length > 0 && (
+              <div className="absolute left-4 bottom-full mb-1 w-72 bg-[#2d2d2d] border border-[#3d3d3d] rounded-lg shadow-xl overflow-hidden z-10">
+                {filteredCommands.slice(0, 6).map((cmd, idx) => (
+                  <button
+                    key={cmd}
+                    onClick={() => selectAutocomplete(cmd)}
+                    className={cn(
+                      "w-full px-3 py-1.5 text-left text-sm flex items-center gap-2",
+                      idx === autocompleteIndex ? "bg-blue-500/30 text-white" : "text-gray-300 hover:bg-[#3d3d3d]"
+                    )}
+                  >
+                    <Terminal className="w-3 h-3 text-gray-500" />
+                    {cmd}
+                  </button>
+                ))}
+                <div className="px-3 py-1 text-2xs text-gray-500 border-t border-[#3d3d3d]">
+                  ↑↓ navigate · Tab select · Esc close
+                </div>
+              </div>
+            )}
           </div>
         </div>
         
@@ -1324,7 +1397,10 @@ export const EnhancedPlatformSimulator = ({
   currentStep,
   onStepComplete,
   platform,
+  onNeedHelp,
 }: PlatformSimulatorsProps) => {
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  
   if (!isOpen) return null;
 
   const handleOpenRealConsole = () => {
@@ -1362,7 +1438,10 @@ export const EnhancedPlatformSimulator = ({
         onClick={onClose}
       />
       
-      <div className="fixed inset-4 md:inset-10 lg:inset-20 z-50 animate-in zoom-in-95 duration-300">
+      <div className={cn(
+        "fixed z-50 animate-in zoom-in-95 duration-300",
+        isFullScreen ? "inset-0" : "inset-4 md:inset-10 lg:inset-20"
+      )}>
         <div className="bg-card rounded-2xl shadow-2xl border border-border/50 overflow-hidden h-full flex flex-col">
           {/* Header */}
           <div className="bg-secondary/50 px-4 py-3 flex items-center gap-3 border-b border-border/50">
@@ -1375,11 +1454,27 @@ export const EnhancedPlatformSimulator = ({
               <Search className="w-4 h-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">
                 {platform === 'docker' && 'Docker Terminal'}
+                {platform === 'containers' && 'Docker Terminal'}
                 {platform === 'github' && 'github.com'}
                 {platform === 'git' && 'Git Terminal'}
                 {(platform === 'kubernetes' || platform === 'devops') && 'Kubernetes Terminal'}
               </span>
             </div>
+            
+            {/* Full screen toggle */}
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setIsFullScreen(!isFullScreen)}
+              className="gap-2"
+            >
+              {isFullScreen ? (
+                <Minimize2 className="w-4 h-4" />
+              ) : (
+                <Maximize2 className="w-4 h-4" />
+              )}
+            </Button>
+            
             <Button 
               variant="outline" 
               size="sm" 
@@ -1396,14 +1491,31 @@ export const EnhancedPlatformSimulator = ({
           
           {/* Content */}
           <div className="flex-1 overflow-auto p-6 bg-background">
-            {/* Current Step */}
+            {/* Current Step with I'm Stuck button */}
             {currentStep && (
               <div className="mb-6 p-4 bg-primary/5 border border-primary/20 rounded-xl">
-                <h3 className="font-medium text-foreground">{currentStep.title}</h3>
-                <p className="text-sm text-muted-foreground mt-1">{currentStep.description}</p>
-                {currentStep.tip && (
-                  <p className="text-xs text-primary mt-2">💡 {currentStep.tip}</p>
-                )}
+                <div className="flex items-start gap-3">
+                  <div className="flex-1">
+                    <h3 className="font-medium text-foreground">{currentStep.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{currentStep.description}</p>
+                    {currentStep.tip && (
+                      <p className="text-xs text-primary mt-2">💡 {currentStep.tip}</p>
+                    )}
+                  </div>
+                  
+                  {/* I'm Stuck Button */}
+                  {onNeedHelp && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={onNeedHelp}
+                      className="gap-2 border-warning/30 text-warning hover:bg-warning/10 hover:text-warning shrink-0"
+                    >
+                      <HelpCircle className="w-4 h-4" />
+                      I'm Stuck
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
             
