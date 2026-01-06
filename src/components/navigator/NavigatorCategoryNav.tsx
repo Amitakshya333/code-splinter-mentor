@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { NavigatorCategory, NavigatorModule } from "@/data/navigatorModules";
 import { 
   Cloud, Workflow, Container, Activity, Shield, GitBranch, 
-  Database, FileCode, ChevronDown, Check, Sparkles
+  Database, FileCode, ChevronDown, Check, Sparkles, TrendingUp, Zap
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -25,6 +25,20 @@ const iconMap: Record<string, any> = {
   Cloud, Workflow, Container, Activity, Shield, GitBranch, Database, FileCode
 };
 
+// Define which modules are "New" or "Popular" (hardcoded for now)
+const MODULE_BADGES: Record<string, 'new' | 'popular' | undefined> = {
+  'ec2-management': 'popular',
+  'lambda-functions': 'popular',
+  's3-storage': 'popular',
+  'ecs-fargate': 'new',
+  'eks-kubernetes': 'new',
+  'docker-basics': 'popular',
+  'kubernetes-basics': 'popular',
+  'terraform-basics': 'new',
+  'github-actions': 'new',
+  'cloudwatch-monitoring': 'new',
+};
+
 export const NavigatorCategoryNav = ({
   categories,
   currentCategory,
@@ -34,6 +48,10 @@ export const NavigatorCategoryNav = ({
 }: NavigatorCategoryNavProps) => {
   const Icon = currentCategory ? iconMap[currentCategory.icon] || Cloud : Cloud;
   const allModules = currentCategory?.subCategories.flatMap(sc => sc.modules) || [];
+
+  const getModuleBadge = (moduleId: string) => {
+    return MODULE_BADGES[moduleId];
+  };
 
   return (
     <div className="sticky top-16 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50">
@@ -111,27 +129,53 @@ export const NavigatorCategoryNav = ({
           </div>
         </div>
 
-        {/* Module Pills */}
+        {/* Module Pills with Badges */}
         {allModules.length > 0 && (
           <div className="pb-3">
             <ScrollArea className="w-full">
               <div className="flex gap-2 pb-1">
                 {allModules.map((mod, index) => {
                   const isSelected = currentModule?.id === mod.id;
+                  const badge = getModuleBadge(mod.id);
+                  
                   return (
                     <button
                       key={mod.id}
                       onClick={() => onModuleChange(mod.id)}
                       className={cn(
                         "relative px-4 py-2 text-sm font-medium rounded-xl whitespace-nowrap transition-all duration-200",
-                        "border shadow-sm",
+                        "border shadow-sm group",
                         isSelected
                           ? "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20"
                           : "bg-card text-muted-foreground border-border hover:border-primary/30 hover:text-foreground hover:shadow-md"
                       )}
                       style={{ animationDelay: `${index * 30}ms` }}
                     >
-                      {mod.name}
+                      <span className="flex items-center gap-2">
+                        {mod.name}
+                        {badge === 'new' && (
+                          <span className={cn(
+                            "inline-flex items-center gap-0.5 px-1.5 py-0.5 text-2xs font-semibold rounded-full",
+                            isSelected
+                              ? "bg-primary-foreground/20 text-primary-foreground"
+                              : "bg-success/10 text-success"
+                          )}>
+                            <Zap className="w-2.5 h-2.5" />
+                            New
+                          </span>
+                        )}
+                        {badge === 'popular' && (
+                          <span className={cn(
+                            "inline-flex items-center gap-0.5 px-1.5 py-0.5 text-2xs font-semibold rounded-full",
+                            isSelected
+                              ? "bg-primary-foreground/20 text-primary-foreground"
+                              : "bg-warning/10 text-warning"
+                          )}>
+                            <TrendingUp className="w-2.5 h-2.5" />
+                            Popular
+                          </span>
+                        )}
+                      </span>
                       {isSelected && (
                         <span className="absolute -top-1 -right-1 w-2 h-2 bg-success rounded-full ring-2 ring-background" />
                       )}
