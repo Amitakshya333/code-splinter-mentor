@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { X, Send, Bot, Lightbulb, CheckCircle2, AlertTriangle, Info, Loader2, Sparkles, MessageSquare } from "lucide-react";
+import { X, Send, Bot, Loader2, Sparkles, MessageSquare, Maximize2, Minimize2, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -46,8 +46,28 @@ export const NavigatorAIMentor = ({
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  const scrollToTop = () => {
+    if (scrollAreaRef.current) {
+      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+  };
+
+  const scrollToBottom = () => {
+    if (scrollAreaRef.current) {
+      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+      }
+    }
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -199,8 +219,16 @@ export const NavigatorAIMentor = ({
         onClick={onClose}
       />
 
-      <div className="fixed bottom-6 right-6 w-full max-w-md z-50 animate-in slide-in-from-bottom-4 duration-300">
-        <div className="bg-card rounded-3xl shadow-2xl border border-border/50 overflow-hidden flex flex-col max-h-[80vh]">
+      <div className={cn(
+        "fixed z-50 animate-in slide-in-from-bottom-4 duration-300",
+        isExpanded 
+          ? "inset-4 sm:inset-8" 
+          : "bottom-6 right-6 w-full max-w-md"
+      )}>
+        <div className={cn(
+          "bg-card rounded-3xl shadow-2xl border border-border/50 overflow-hidden flex flex-col",
+          isExpanded ? "h-full" : "max-h-[80vh]"
+        )}>
           {/* Header */}
           <div className="p-4 border-b border-border/50 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
@@ -217,54 +245,89 @@ export const NavigatorAIMentor = ({
                 <p className="text-xs text-muted-foreground">Step {stepIndex + 1} of {totalSteps}</p>
               </div>
             </div>
-            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
-              <X className="w-4 h-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setIsExpanded(!isExpanded)} 
+                className="rounded-full"
+                title={isExpanded ? "Minimize" : "Maximize"}
+              >
+                {isExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </Button>
+              <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full">
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Messages */}
-          <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-            <div className="space-y-4">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={cn(
-                    "flex gap-3",
-                    msg.role === 'user' ? "flex-row-reverse" : ""
-                  )}
-                >
-                  <div className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
-                    msg.role === 'user' ? "bg-primary" : "bg-secondary"
-                  )}>
-                    {msg.role === 'user' ? (
-                      <MessageSquare className="w-4 h-4 text-primary-foreground" />
-                    ) : (
-                      <Sparkles className="w-4 h-4 text-primary" />
+          <div className="flex-1 relative" ref={scrollAreaRef}>
+            <ScrollArea className="h-full p-4" ref={scrollRef}>
+              <div className="space-y-4">
+                {messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={cn(
+                      "flex gap-3",
+                      msg.role === 'user' ? "flex-row-reverse" : ""
                     )}
+                  >
+                    <div className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+                      msg.role === 'user' ? "bg-primary" : "bg-secondary"
+                    )}>
+                      {msg.role === 'user' ? (
+                        <MessageSquare className="w-4 h-4 text-primary-foreground" />
+                      ) : (
+                        <Sparkles className="w-4 h-4 text-primary" />
+                      )}
+                    </div>
+                    <div className={cn(
+                      "max-w-[80%] p-3 rounded-2xl text-sm",
+                      msg.role === 'user' 
+                        ? "bg-primary text-primary-foreground rounded-br-sm" 
+                        : "bg-secondary rounded-bl-sm"
+                    )}>
+                      <p className="whitespace-pre-wrap">{msg.content || (isLoading ? '...' : '')}</p>
+                    </div>
                   </div>
-                  <div className={cn(
-                    "max-w-[80%] p-3 rounded-2xl text-sm",
-                    msg.role === 'user' 
-                      ? "bg-primary text-primary-foreground rounded-br-sm" 
-                      : "bg-secondary rounded-bl-sm"
-                  )}>
-                    <p className="whitespace-pre-wrap">{msg.content || (isLoading ? '...' : '')}</p>
+                ))}
+                {isLoading && messages[messages.length - 1]?.role === 'user' && (
+                  <div className="flex gap-3">
+                    <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+                      <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                    </div>
+                    <div className="bg-secondary p-3 rounded-2xl rounded-bl-sm">
+                      <span className="text-sm text-muted-foreground">Thinking...</span>
+                    </div>
                   </div>
-                </div>
-              ))}
-              {isLoading && messages[messages.length - 1]?.role === 'user' && (
-                <div className="flex gap-3">
-                  <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
-                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                  </div>
-                  <div className="bg-secondary p-3 rounded-2xl rounded-bl-sm">
-                    <span className="text-sm text-muted-foreground">Thinking...</span>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
+            </ScrollArea>
+            
+            {/* Scroll buttons */}
+            <div className="absolute right-2 top-2 flex flex-col gap-1">
+              <Button
+                variant="secondary"
+                size="icon"
+                className="w-8 h-8 rounded-full shadow-md opacity-80 hover:opacity-100"
+                onClick={scrollToTop}
+                title="Scroll to top"
+              >
+                <ChevronUp className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="secondary"
+                size="icon"
+                className="w-8 h-8 rounded-full shadow-md opacity-80 hover:opacity-100"
+                onClick={scrollToBottom}
+                title="Scroll to bottom"
+              >
+                <ChevronDown className="w-4 h-4" />
+              </Button>
             </div>
-          </ScrollArea>
+          </div>
 
           {/* Quick Prompts */}
           <div className="px-4 pb-2 flex gap-2 overflow-x-auto shrink-0">
