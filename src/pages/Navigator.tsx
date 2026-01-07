@@ -134,11 +134,10 @@ const Navigator = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-hero">
-      {/* Ambient background effects */}
+    <div className="min-h-screen bg-background">
+      {/* Subtle ambient background */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-gradient-glow opacity-50" />
-        <div className="absolute bottom-0 right-0 w-[600px] h-[400px] bg-gradient-to-tl from-success/5 to-transparent rounded-full blur-3xl" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-glow opacity-30" />
       </div>
 
       <div className="relative">

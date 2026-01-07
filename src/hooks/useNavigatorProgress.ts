@@ -27,8 +27,12 @@ export const useNavigatorProgress = (categoryId: string, moduleId: string) => {
   const [progress, setProgress] = useState<ProgressData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load progress from localStorage on mount
+  // Load progress from localStorage when module changes
   useEffect(() => {
+    // Reset progress when module changes
+    setProgress(null);
+    setIsLoading(true);
+
     const loadProgressFromStorage = async () => {
       try {
         const userId = getAnonymousUserId();
@@ -39,15 +43,15 @@ export const useNavigatorProgress = (categoryId: string, moduleId: string) => {
         }
 
         const dbProgress = await loadProgress(userId, workflowId);
-        if (dbProgress) {
-          // Convert database progress to Navigator format
+        if (dbProgress && dbProgress.workflow_id === workflowId) {
+          // Only set progress if it matches the current module
           setProgress({
             categoryId,
             moduleId,
             completedSteps: dbProgress.completed_steps.map(s => s.toString()),
-            currentStepIndex: dbProgress.current_step - 1, // Convert to 0-based index
+            currentStepIndex: dbProgress.current_step - 1,
             lastUpdated: new Date(dbProgress.last_activity || dbProgress.started_at || ''),
-            quizResults: {}, // Quiz results not stored yet
+            quizResults: {},
           });
         }
       } catch (error) {
@@ -76,7 +80,7 @@ export const useNavigatorProgress = (categoryId: string, moduleId: string) => {
       // Convert string step IDs to numbers for storage
       const completedStepsNumbers = completedSteps.map(s => parseInt(s, 10)).filter(n => !isNaN(n));
 
-      // Update local state optimistically
+      // Update local state optimistically - only if it matches current module
       const newProgress: ProgressData = {
         categoryId,
         moduleId,
@@ -87,11 +91,11 @@ export const useNavigatorProgress = (categoryId: string, moduleId: string) => {
       };
       setProgress(newProgress);
 
-      // Save to localStorage
+      // Save to localStorage using unique key per workflow
       await saveProgressToDb(
         userId,
         workflowId,
-        currentStepIndex + 1, // Convert to 1-based index
+        currentStepIndex + 1,
         completedStepsNumbers
       );
     } catch (error) {
