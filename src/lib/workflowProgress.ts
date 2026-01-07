@@ -17,7 +17,12 @@ export interface WorkflowProgress {
 const STORAGE_KEY = "codesplinter_progress";
 
 interface ProgressStorage {
-  [workflowId: string]: WorkflowProgress;
+  [userWorkflowKey: string]: WorkflowProgress;
+}
+
+// Generate unique key for user + workflow combination
+function getProgressKey(userId: string, workflowId: string): string {
+  return `${userId}_${workflowId}`;
 }
 
 function getStorageData(): ProgressStorage {
@@ -50,19 +55,20 @@ export async function saveProgress(
   completedSteps: number[]
 ): Promise<WorkflowProgress> {
   const storage = getStorageData();
+  const key = getProgressKey(userId, workflowId);
   
   const progress: WorkflowProgress = {
-    id: `${userId}_${workflowId}`,
+    id: key,
     user_id: userId,
     workflow_id: workflowId,
     current_step: currentStep,
     completed_steps: completedSteps,
-    started_at: storage[workflowId]?.started_at || new Date().toISOString(),
+    started_at: storage[key]?.started_at || new Date().toISOString(),
     last_activity: new Date().toISOString(),
-    completed_at: storage[workflowId]?.completed_at || null,
+    completed_at: storage[key]?.completed_at || null,
   };
   
-  storage[workflowId] = progress;
+  storage[key] = progress;
   saveStorageData(storage);
   
   return progress;
@@ -76,7 +82,8 @@ export async function loadProgress(
   workflowId: string
 ): Promise<WorkflowProgress | null> {
   const storage = getStorageData();
-  return storage[workflowId] || null;
+  const key = getProgressKey(userId, workflowId);
+  return storage[key] || null;
 }
 
 /**
@@ -99,9 +106,10 @@ export async function markWorkflowComplete(
   workflowId: string
 ): Promise<void> {
   const storage = getStorageData();
-  if (storage[workflowId]) {
-    storage[workflowId].completed_at = new Date().toISOString();
-    storage[workflowId].last_activity = new Date().toISOString();
+  const key = getProgressKey(userId, workflowId);
+  if (storage[key]) {
+    storage[key].completed_at = new Date().toISOString();
+    storage[key].last_activity = new Date().toISOString();
     saveStorageData(storage);
   }
 }
