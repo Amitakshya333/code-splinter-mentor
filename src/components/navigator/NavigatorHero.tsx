@@ -113,16 +113,16 @@ export const NavigatorHero = ({
   };
 
   const platformColors: Record<string, { bg: string; text: string; accent: string }> = {
-    aws: { bg: "from-orange-500/10 to-orange-500/5", text: "text-orange-500", accent: "bg-orange-500" },
-    docker: { bg: "from-blue-500/10 to-blue-500/5", text: "text-blue-500", accent: "bg-blue-500" },
-    github: { bg: "from-foreground/10 to-foreground/5", text: "text-foreground", accent: "bg-foreground" },
-    containers: { bg: "from-blue-500/10 to-blue-500/5", text: "text-blue-500", accent: "bg-blue-500" },
-    git: { bg: "from-orange-600/10 to-orange-600/5", text: "text-orange-600", accent: "bg-orange-600" },
-    devops: { bg: "from-purple-500/10 to-purple-500/5", text: "text-purple-500", accent: "bg-purple-500" },
-    monitoring: { bg: "from-green-500/10 to-green-500/5", text: "text-green-500", accent: "bg-green-500" },
-    security: { bg: "from-red-500/10 to-red-500/5", text: "text-red-500", accent: "bg-red-500" },
-    databases: { bg: "from-cyan-500/10 to-cyan-500/5", text: "text-cyan-500", accent: "bg-cyan-500" },
-    iac: { bg: "from-amber-500/10 to-amber-500/5", text: "text-amber-500", accent: "bg-amber-500" },
+    aws: { bg: "from-primary/8 to-primary/4", text: "text-primary", accent: "bg-primary" },
+    docker: { bg: "from-primary/8 to-primary/4", text: "text-primary", accent: "bg-primary" },
+    github: { bg: "from-foreground/8 to-foreground/4", text: "text-foreground", accent: "bg-foreground" },
+    containers: { bg: "from-primary/8 to-primary/4", text: "text-primary", accent: "bg-primary" },
+    git: { bg: "from-primary/8 to-primary/4", text: "text-primary", accent: "bg-primary" },
+    devops: { bg: "from-primary/8 to-primary/4", text: "text-primary", accent: "bg-primary" },
+    monitoring: { bg: "from-success/8 to-success/4", text: "text-success", accent: "bg-success" },
+    security: { bg: "from-destructive/8 to-destructive/4", text: "text-destructive", accent: "bg-destructive" },
+    databases: { bg: "from-primary/8 to-primary/4", text: "text-primary", accent: "bg-primary" },
+    iac: { bg: "from-warning/8 to-warning/4", text: "text-warning", accent: "bg-warning" },
   };
 
   const Icon = icons[platform] || Cloud;
@@ -137,39 +137,36 @@ export const NavigatorHero = ({
   };
 
   return (
-    <div className="relative mb-12">
-      {/* Background glow */}
-      <div className="hero-glow absolute -top-20 left-1/2 -translate-x-1/2 w-[600px] h-[300px]" />
-      
+    <div className="relative mb-8">
       {/* Main card */}
-      <div className="relative bg-card rounded-2xl border shadow-card overflow-hidden">
-        {/* Gradient header strip */}
-        <div className={cn("h-1.5 w-full bg-gradient-to-r", colors.bg.replace("from-", "from-").replace("/10", "").replace("/5", "/80"))} />
+      <div className="relative bg-card rounded-xl border shadow-sm overflow-hidden">
+        {/* Subtle header accent */}
+        <div className={cn("h-1 w-full", colors.accent)} />
         
-        <div className="p-8">
-          <div className="flex flex-col lg:flex-row items-center gap-8">
+        <div className="p-6">
+          <div className="flex flex-col lg:flex-row items-center gap-6">
             {/* Left: Progress Ring */}
             <div className="shrink-0">
               <ProgressRing 
                 progress={progress} 
                 isComplete={isComplete}
-                size={140}
-                strokeWidth={10}
+                size={100}
+                strokeWidth={8}
               />
             </div>
 
             {/* Center: Content */}
             <div className="flex-1 text-center lg:text-left">
               {/* Platform badge */}
-              <div className="inline-flex items-center gap-2 mb-3">
+              <div className="inline-flex items-center gap-2 mb-2">
                 <div className={cn(
-                  "w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br",
+                  "w-7 h-7 rounded-lg flex items-center justify-center bg-gradient-to-br",
                   colors.bg
                 )}>
-                  <Icon className={cn("w-4 h-4", colors.text)} />
+                  <Icon className={cn("w-3.5 h-3.5", colors.text)} />
                 </div>
                 <span className={cn(
-                  "text-xs font-medium px-2 py-1 rounded-full",
+                  "text-xs font-medium px-2 py-0.5 rounded-full",
                   difficultyConfig[difficulty].color
                 )}>
                   {difficultyConfig[difficulty].label}
@@ -177,10 +174,10 @@ export const NavigatorHero = ({
               </div>
 
               {/* Title */}
-              <h1 className="text-2xl sm:text-3xl font-semibold text-foreground tracking-tight mb-2">
+              <h1 className="text-xl sm:text-2xl font-semibold text-foreground tracking-tight mb-1.5">
                 {isComplete ? (
                   <span className="flex items-center gap-2 justify-center lg:justify-start">
-                    <Sparkles className="w-6 h-6 text-warning animate-pulse" />
+                    <CheckCircle2 className="w-5 h-5 text-success" />
                     Goal Achieved!
                   </span>
                 ) : goal}
